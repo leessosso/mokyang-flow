@@ -33,10 +33,6 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
-# sqlite
-dev.db
-dev.db-journal
-
 # vercel
 .vercel
 
@@ -44,4 +40,17 @@ dev.db-journal
 *.tsbuildinfo
 next-env.d.ts
 
-/src/generated/prisma
+# Firebase 서비스 계정 키 (민감 정보)
+serviceAccountKey.json
+*-firebase-adminsdk-*.json
+
+# sorting-hat Firebase 설정 (민감 정보)
+/public/sorting-hat/firebase-config.js
+
+# Firebase emulator cache
+.firebase/
+firebase-debug.log
+firestore-debug.log
+storage-debug.log
+ui-debug.log
+pubsub-debug.log

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>배정 시스템 - 관리자</title>
+    <link rel="stylesheet" href="style.css?v=20260920b">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="admin-body">
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1 class="admin-title">배정 관리</h1>
+            <p class="admin-subtitle">조 편성 시스템 제어판</p>
+        </header>
+
+        <main class="admin-main">
+            <!-- 오늘 출석 임원 선택 섹션 -->
+            <section class="admin-section">
+                <h2 class="section-title">오늘 출석 임원</h2>
+                <p class="section-description">오늘 출석한 임원들을 선택하세요. 선택된 임원 수만큼 조가 생성됩니다.</p>
+
+                <div class="leaders-grid" id="leadersGrid">
+                    <label class="leader-checkbox">
+                        <input type="checkbox" class="leader-input" data-leader="회장">
+                        <span class="leader-label">
+                            <span class="leader-icon">🦁</span>
+                            <span class="leader-name">회장</span>
+                        </span>
+                    </label>
+
+                    <label class="leader-checkbox">
+                        <input type="checkbox" class="leader-input" data-leader="부회장">
+                        <span class="leader-label">
+                            <span class="leader-icon">🦅</span>
+                            <span class="leader-name">부회장</span>
+                        </span>
+                    </label>
+
+                    <label class="leader-checkbox">
+                        <input type="checkbox" class="leader-input" data-leader="총무">
+                        <span class="leader-label">
+                            <span class="leader-icon">🦊</span>
+                            <span class="leader-name">총무</span>
+                        </span>
+                    </label>
+
+                    <label class="leader-checkbox">
+                        <input type="checkbox" class="leader-input" data-leader="부총무">
+                        <span class="leader-label">
+                            <span class="leader-icon">🐺</span>
+                            <span class="leader-name">부총무</span>
+                        </span>
+                    </label>
+
+                    <label class="leader-checkbox">
+                        <input type="checkbox" class="leader-input" data-leader="서기">
+                        <span class="leader-label">
+                            <span class="leader-icon">🐉</span>
+                            <span class="leader-name">서기</span>
+                        </span>
+                    </label>
+
+                    <label class="leader-checkbox">
+                        <input type="checkbox" class="leader-input" data-leader="부서기">
+                        <span class="leader-label">
+                            <span class="leader-icon">🦉</span>
+                            <span class="leader-name">부서기</span>
+                        </span>
+                    </label>
+
+                    <label class="leader-checkbox">
+                        <input type="checkbox" class="leader-input" data-leader="회계">
+                        <span class="leader-label">
+                            <span class="leader-icon">🐯</span>
+                            <span class="leader-name">회계</span>
+                        </span>
+                    </label>
+
+                    <label class="leader-checkbox">
+                        <input type="checkbox" class="leader-input" data-leader="부회계">
+                        <span class="leader-label">
+                            <span class="leader-icon">🦌</span>
+                            <span class="leader-name">부회계</span>
+                        </span>
+                    </label>
+                </div>
+
+                <div class="selected-count">
+                    선택된 임원: <span id="selectedCount">0</span>명 (생성될 조: <span id="teamCount">0</span>개)
+                </div>
+
+                <button id="applyLeadersBtn" class="admin-button primary">
+                    ✅ 조 구성 적용하기
+                </button>
+            </section>
+
+            <!-- 배정 상태 제어 섹션 -->
+            <section class="admin-section">
+                <h2 class="section-title">조 배정 상태 제어</h2>
+                <p class="section-description">조 배정을 시작하거나 중지할 수 있습니다.</p>
+
+                <div class="status-control">
+                    <div class="status-indicator" id="statusIndicator">
+                        <span class="status-dot"></span>
+                        <span class="status-text">배정 중지됨</span>
+                    </div>
+
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="sortingToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="status-info" id="statusInfo">
+                    현재 사용자들은 배정을 받을 수 없습니다.
+                </div>
+            </section>
+
+            <!-- 자리 뽑기 상태 제어 섹션 -->
+            <section class="admin-section">
+                <h2 class="section-title">자리 뽑기 상태 제어</h2>
+                <p class="section-description">자리 뽑기를 시작하거나 중지할 수 있습니다.</p>
+
+                <div class="status-control">
+                    <div class="status-indicator" id="seatStatusIndicator">
+                        <span class="status-dot"></span>
+                        <span class="status-text">자리 뽑기 중지됨</span>
+                    </div>
+
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="seatDrawToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="status-info" id="seatStatusInfo">
+                    현재 임원들은 자리를 배정받을 수 없습니다.
+                </div>
+            </section>
+
+            <!-- 조 배정 명단 관리 섹션 -->
+            <section class="admin-section">
+                <h2 class="section-title">조 배정 명단 관리</h2>
+                <p class="section-description">조 배정 드롭다운 목록에 표시될 전체 명단을 입력하세요.</p>
+
+                <div class="restriction-config">
+                    <label for="memberListInput" class="input-label admin-input-label">전체 명단</label>
+                    <textarea id="memberListInput" class="admin-textarea" rows="6"
+                        placeholder="예: 홍길동, 김철수, 이영희&#10;또는 줄바꿈으로 입력"></textarea>
+                    <p class="config-help-text">쉼표(,) 또는 줄바꿈으로 이름을 구분합니다.</p>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button id="saveMemberListBtn" class="admin-button primary">💾 명단 저장하기</button>
+                        <button id="deleteMemberListBtn" class="admin-button danger">🗑️ 명단 삭제하기</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 자리 뽑기 명단 관리 섹션 -->
+            <section class="admin-section">
+                <h2 class="section-title">자리 뽑기 명단 관리</h2>
+                <p class="section-description">자리 뽑기 드롭다운에 표시될 명단입니다. 저장된 인원 수만큼 1번부터 번호가 배정됩니다.</p>
+
+                <div class="restriction-config">
+                    <label for="seatMemberListInput" class="input-label admin-input-label">전체 명단</label>
+                    <textarea id="seatMemberListInput" class="admin-textarea" rows="6"
+                        placeholder="예: 승석이네, 광림이네, 혜미네&#10;또는 줄바꿈으로 입력"></textarea>
+                    <p class="config-help-text">쉼표(,) 또는 줄바꿈으로 이름을 구분합니다. 전체 데이터 초기화 시에도 유지됩니다.</p>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button id="saveSeatMemberListBtn" class="admin-button primary">💾 명단 저장하기</button>
+                        <button id="deleteSeatMemberListBtn" class="admin-button danger">🗑️ 명단 삭제하기</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 자리 뽑기 제한 설정 섹션 -->
+            <section class="admin-section">
+                <h2 class="section-title">자리 뽑기 제한 설정</h2>
+                <p class="section-description">여기에 입력한 이름은 자리 뽑기 시 1~4번 자리에 배정되지 않습니다.</p>
+
+                <div class="restriction-config">
+                    <label for="seatRestrictedNamesInput" class="input-label admin-input-label">제외 명단</label>
+                    <textarea id="seatRestrictedNamesInput" class="admin-textarea"
+                        placeholder="예: 상백이네, 승석이네, 광림이네"></textarea>
+                    <p class="config-help-text">쉼표(,) 또는 줄바꿈으로 여러 이름을 입력할 수 있습니다.</p>
+                    <button id="saveSeatRestrictionsBtn" class="admin-button primary">💾 제한 명단 저장</button>
+                </div>
+            </section>
+
+            <!-- 예외 배정 비밀 메뉴 섹션 -->
+            <section class="admin-section">
+                <h2 class="section-title">예외 배정 비밀 메뉴</h2>
+                <p class="section-description">마을장-가장 배정 제외 명단 및 가장-가장 상호 배타 목록을 조회/수정합니다.</p>
+
+                <!-- 비밀번호 인증 폼 -->
+                <div id="secretAuthForm" class="restriction-config">
+                    <label for="secretPasswordInput" class="input-label admin-input-label">비밀번호 입력</label>
+                    <div style="display: flex; gap: 10px; max-width: 400px; margin-bottom: 10px;">
+                        <input type="password" id="secretPasswordInput" class="name-input" placeholder="비밀번호 입력" style="text-align: left;">
+                        <button id="secretAuthBtn" class="admin-button primary" style="white-space: nowrap;">🔒 열기</button>
+                    </div>
+                    <p class="config-help-text">기본 비밀번호는 <strong>7777</strong> 입니다.</p>
+                </div>
+
+                <!-- 비밀 메뉴 콘텐츠 (인증 후 표시) -->
+                <div id="secretMenuContent" class="secret-content hidden">
+                    <div class="restriction-config" style="margin-bottom: 24px;">
+                        <label class="input-label admin-input-label" style="color: var(--color-gold);">1. 마을장(임원) - 가장 배정 제외 목록</label>
+                        <p class="config-help-text" style="margin-bottom: 8px;">형식: <code>직책명: 이름1, 이름2</code> (줄바꿈으로 구분)</p>
+                        <textarea id="leaderRestrictionsInput" class="admin-textarea" rows="5"
+                            placeholder="예:&#10;부회장: 배유림, 유림, 유림이네, 유림이&#10;총무: 언이네, 장언, 장 언, 언"></textarea>
+                    </div>
+
+                    <div class="restriction-config" style="margin-bottom: 24px;">
+                        <label class="input-label admin-input-label" style="color: var(--color-gold);">2. 가장 - 가장 상호 배타 그룹 (같은 조 금지 목록)</label>
+                        <p class="config-help-text" style="margin-bottom: 8px;">한 조에 같이 배정되면 안 되는 그룹입니다. (한 줄에 쉼표로 구분)</p>
+                        <textarea id="mutuallyExclusiveInput" class="admin-textarea" rows="5"
+                            placeholder="예:&#10;장현진, 한성민&#10;홍길동, 김철수"></textarea>
+                    </div>
+
+                    <div class="restriction-config" style="margin-bottom: 24px;">
+                        <label for="newSecretPasswordInput" class="input-label admin-input-label">3. 비밀번호 변경 (선택)</label>
+                        <div style="max-width: 400px;">
+                            <input type="password" id="newSecretPasswordInput" class="name-input" placeholder="새 비밀번호 (변경시에만 입력)" style="text-align: left;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button id="saveSecretConfigBtn" class="admin-button primary">💾 비밀 설정 저장하기</button>
+                        <button id="lockSecretMenuBtn" class="admin-button warning">🔒 비밀 메뉴 잠그기</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 데이터 관리 섹션 -->
+            <section class="admin-section">
+                <h2 class="section-title">데이터 관리</h2>
+                <p class="section-description">배정 데이터를 초기화할 수 있습니다.</p>
+
+                <div class="admin-buttons">
+                    <button id="resetAssignmentsBtn" class="admin-button warning">
+                        🔄 조 배정 결과만 초기화
+                    </button>
+
+                    <button id="resetSeatsBtn" class="admin-button warning">
+                        🔄 자리 배정 결과만 초기화
+                    </button>
+
+                    <button id="resetAllBtn" class="admin-button danger">
+                        ⚠️ 전체 데이터 초기화
+                    </button>
+                </div>
+            </section>
+
+            <!-- 실시간 통계 -->
+            <section class="admin-section">
+                <h2 class="section-title">조 배정 실시간 통계</h2>
+
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="stat-label">활성 조 수</div>
+                        <div class="stat-value" id="activeTeams">0</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">총 배정 인원</div>
+                        <div class="stat-value" id="totalMembers">0</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">평균 조원 수</div>
+                        <div class="stat-value" id="avgMembers">0.0</div>
+                    </div>
+                </div>
+
+                <div class="teams-detail" id="teamsDetail">
+                    <!-- 조별 상세 정보가 여기 표시됩니다 -->
+                </div>
+            </section>
+
+            <!-- 자리 배정 통계 -->
+            <section class="admin-section">
+                <h2 class="section-title">자리 배정 실시간 통계</h2>
+
+                <div class="stats-grid" id="seatStatsGrid">
+                    <div class="stat-card">
+                        <div class="stat-label">배정된 자리</div>
+                        <div class="stat-value" id="assignedSeats">0</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">남은 자리</div>
+                        <div class="stat-value" id="remainingSeats">0</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">총 자리 수</div>
+                        <div class="stat-value" id="totalSeats">0</div>
+                    </div>
+                </div>
+
+                <h3 class="board-title" style="margin-top: 24px;">자리 배치도</h3>
+                <div id="adminSeatMapView" class="seat-map-wrap">
+                    <div class="seat-layout">
+                        <div class="seat-stage">강대상</div>
+
+                        <div class="seat-top-grid">
+                            <div class="seat-slot seat-slot-numbered available" data-seat-number="1"><span class="seat-slot-label">1</span><span class="seat-slot-name">-</span></div>
+                            <div class="seat-slot seat-slot-numbered available" data-seat-number="2"><span class="seat-slot-label">2</span><span class="seat-slot-name">-</span></div>
+                            <div class="seat-slot seat-slot-dark"></div>
+                            <div class="seat-slot seat-slot-dark"></div>
+
+                            <div class="seat-slot seat-slot-numbered available" data-seat-number="3"><span class="seat-slot-label">3</span><span class="seat-slot-name">-</span></div>
+                            <div class="seat-slot seat-slot-numbered available" data-seat-number="4"><span class="seat-slot-label">4</span><span class="seat-slot-name">-</span></div>
+                        </div>
+
+                        <div class="seat-aisle">통로</div>
+
+                        <div class="seat-main-grid">
+                            <div class="seat-column">
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="5"><span class="seat-slot-label">5</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="6"><span class="seat-slot-label">6</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="7"><span class="seat-slot-label">7</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="8"><span class="seat-slot-label">8</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="9"><span class="seat-slot-label">9</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="10"><span class="seat-slot-label">10</span><span class="seat-slot-name">-</span></div>
+                            </div>
+
+                            <div class="seat-column">
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="11"><span class="seat-slot-label">11</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="12"><span class="seat-slot-label">12</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="13"><span class="seat-slot-label">13</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="14"><span class="seat-slot-label">14</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="15"><span class="seat-slot-label">15</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="16"><span class="seat-slot-label">16</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available seat-slot-17" data-seat-number="17"><span class="seat-slot-label">17</span><span class="seat-slot-name">-</span></div>
+                            </div>
+
+                            <div class="seat-column">
+                                <div class="seat-slot seat-slot-team">새가족팀</div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="18"><span class="seat-slot-label">18</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="19"><span class="seat-slot-label">19</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="20"><span class="seat-slot-label">20</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="21"><span class="seat-slot-label">21</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="22"><span class="seat-slot-label">22</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="23"><span class="seat-slot-label">23</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="24"><span class="seat-slot-label">24</span><span class="seat-slot-name">-</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="teams-detail" id="seatsDetail">
+                    <!-- 자리 배정 상세 정보가 여기 표시됩니다 -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <!-- Firebase Config -->
+    <script src="firebase-config.js"></script>
+
+    <!-- App Script -->
+    <script src="app.js?v=20260801f"></script>
+
+    <script>
+        // 관리자 앱 초기화
+        if (typeof initAdminApp === 'function') {
+            initAdminApp();
+        }
+    </script>
+</body>
+
+</html>

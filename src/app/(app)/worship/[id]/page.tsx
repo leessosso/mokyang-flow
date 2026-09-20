@@ -4,8 +4,13 @@ import { auth } from "@/auth";
 import { assignGroupSeating } from "@/app/actions";
 import { Button, Card, CardHeader } from "@/components/ui";
 import { isPastorOrAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { formatDateKo } from "@/lib/format";
+import { listGroups } from "@/lib/store/groups";
+import {
+  getWorshipServiceById,
+  listAssignmentsByService,
+  listZonesByService,
+} from "@/lib/store/worship";
 
 export default async function WorshipDetailPage({
   params,
@@ -17,19 +22,17 @@ export default async function WorshipDetailPage({
   const canEdit =
     isPastorOrAdmin(session!.user.role) || session!.user.role === "LEADER";
 
-  const service = await prisma.worshipService.findUnique({
-    where: { id },
-    include: {
-      zones: { orderBy: { sortOrder: "asc" } },
-      assignments: { include: { group: true, zone: true } },
-    },
-  });
+  const service = await getWorshipServiceById(id);
   if (!service) notFound();
 
-  const groups = await prisma.group.findMany({ orderBy: { name: "asc" } });
-  const assignmentMap = new Map(
-    service.assignments.map((a) => [a.groupId, a.zoneId]),
-  );
+  const [zones, assignments, groups] = await Promise.all([
+    listZonesByService(id),
+    listAssignmentsByService(id),
+    listGroups(),
+  ]);
+
+  const groupMap = new Map(groups.map((g) => [g.id, g]));
+  const assignmentMap = new Map(assignments.map((a) => [a.groupId, a.zoneId]));
 
   return (
     <div className="space-y-6">
@@ -48,10 +51,10 @@ export default async function WorshipDetailPage({
       </div>
 
       <Card>
-        <CardHeader title="구역 배치도" subtitle="조별 좌석 블록" />
-        <div className="grid grid-cols-2 gap-3 p-4 sm:gap-4 sm:p-5">
-          {service.zones.map((zone) => {
-            const assigned = service.assignments.filter((a) => a.zoneId === zone.id);
+        <CardHeader title="구역 배치도" subtitle="가족별 좌석 블록" />
+        <div className="grid grid-cols-2 gap-3 p-4 sm:gap-4 sm:p-5 xl:grid-cols-4">
+          {zones.map((zone) => {
+            const assigned = assignments.filter((a) => a.zoneId === zone.id);
             return (
               <div
                 key={zone.id}
@@ -61,7 +64,7 @@ export default async function WorshipDetailPage({
                 <ul className="mt-2 space-y-1">
                   {assigned.map((a) => (
                     <li key={a.id} className="text-sm text-stone-700">
-                      {a.group.name}
+                      {groupMap.get(a.groupId)?.name ?? "알 수 없음"}
                     </li>
                   ))}
                   {assigned.length === 0 && (
@@ -76,7 +79,7 @@ export default async function WorshipDetailPage({
 
       {canEdit && (
         <Card>
-          <CardHeader title="조별 구역 지정" />
+          <CardHeader title="가족별 구역 지정" />
           <ul className="divide-y divide-stone-100">
             {groups.map((g) => (
               <li key={g.id} className="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-5">
@@ -99,7 +102,7 @@ export default async function WorshipDetailPage({
                     required
                   >
                     <option value="" disabled>구역 선택</option>
-                    {service.zones.map((z) => (
+                    {zones.map((z) => (
                       <option key={z.id} value={z.id}>{z.name}</option>
                     ))}
                   </select>

@@ -1,9 +1,9 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { authConfig } from "@/auth.config";
-import type { Role } from "@/generated/prisma/client";
-import { prisma } from "@/lib/db";
+import { getUserByEmail } from "@/lib/store/users";
 import { verifyPassword } from "@/lib/password";
+import type { Role } from "@/lib/types";
 
 declare module "next-auth" {
   interface User {
@@ -21,6 +21,7 @@ declare module "next-auth" {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  secret: process.env.AUTH_SECRET ?? (process.env.NODE_ENV === "production" ? undefined : "dev-only-auth-secret"),
   providers: [
     Credentials({
       name: "이메일",
@@ -33,7 +34,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = credentials?.password as string | undefined;
         if (!email || !password) return null;
 
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await getUserByEmail(email);
         if (!user) return null;
 
         const ok = await verifyPassword(password, user.passwordHash);

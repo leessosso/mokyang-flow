@@ -12,10 +12,12 @@ type Group = {
 };
 
 export function SharingEditor({
+  meetingId,
   planId,
   useHomeGroups,
   groups,
 }: {
+  meetingId: string;
   planId: string;
   useHomeGroups: boolean;
   groups: Group[];
@@ -27,14 +29,14 @@ export function SharingEditor({
 
   async function onAuto() {
     setLoading(true);
-    await runAutoSharing(planId, groupCount);
+    await runAutoSharing(meetingId, planId, groupCount);
     setLoading(false);
     router.refresh();
   }
 
   async function onDrop(toGroupId: string, memberId: string) {
     setLoading(true);
-    await moveMemberSharing(memberId, toGroupId, planId);
+    await moveMemberSharing(memberId, toGroupId, planId, meetingId);
     setLoading(false);
     router.refresh();
   }
@@ -60,7 +62,7 @@ export function SharingEditor({
             자동 균형 배치
           </Button>
           <p className="text-xs text-stone-500">
-            드래그로 조원을 다른 나눔조로 옮길 수 있습니다.
+            드래그로 가족원을 다른 나눔조로 옮길 수 있습니다.
           </p>
         </div>
       )}

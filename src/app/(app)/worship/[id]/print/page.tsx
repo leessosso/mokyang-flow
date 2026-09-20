@@ -1,6 +1,11 @@
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/db";
 import { formatDateKo } from "@/lib/format";
+import { listGroups } from "@/lib/store/groups";
+import {
+  getWorshipServiceById,
+  listAssignmentsByService,
+  listZonesByService,
+} from "@/lib/store/worship";
 
 export default async function WorshipPrintPage({
   params,
@@ -8,14 +13,15 @@ export default async function WorshipPrintPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const service = await prisma.worshipService.findUnique({
-    where: { id },
-    include: {
-      zones: { orderBy: { sortOrder: "asc" } },
-      assignments: { include: { group: true, zone: true } },
-    },
-  });
+  const service = await getWorshipServiceById(id);
   if (!service) notFound();
+
+  const [zones, assignments, groups] = await Promise.all([
+    listZonesByService(id),
+    listAssignmentsByService(id),
+    listGroups(),
+  ]);
+  const groupMap = new Map(groups.map((g) => [g.id, g.name]));
 
   return (
     <div className="mx-auto max-w-3xl bg-white p-8 text-stone-900 print:p-4">
@@ -24,21 +30,21 @@ export default async function WorshipPrintPage({
         {service.title} · {formatDateKo(service.date)}
       </p>
       <div className="mt-8 grid grid-cols-2 gap-6">
-        {service.zones.map((zone) => {
-          const groups = service.assignments
+        {zones.map((zone) => {
+          const names = assignments
             .filter((a) => a.zoneId === zone.id)
-            .map((a) => a.group.name);
+            .map((a) => groupMap.get(a.groupId) ?? "알 수 없음");
           return (
             <div key={zone.id} className="border border-stone-300 p-4">
               <h2 className="text-lg font-semibold">{zone.name}</h2>
               <p className="mt-2 text-base">
-                {groups.length ? groups.join(", ") : "—"}
+                {names.length ? names.join(", ") : "—"}
               </p>
             </div>
           );
         })}
       </div>
-      <p className="mt-8 text-sm text-stone-500">인도자·조장 배포용</p>
+      <p className="mt-8 text-sm text-stone-500">인도자·가장 배포용</p>
     </div>
   );
 }

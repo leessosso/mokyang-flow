@@ -3,27 +3,34 @@ import { auth } from "@/auth";
 import { createWorshipService } from "@/app/actions";
 import { Button, Card, CardHeader, Input, Label } from "@/components/ui";
 import { isPastorOrAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { formatDateKo } from "@/lib/format";
+import { listAssignmentsByService, listWorshipServices } from "@/lib/store/worship";
 
 export default async function WorshipListPage() {
   const session = await auth();
   const canAdmin = isPastorOrAdmin(session!.user.role);
 
-  const services = await prisma.worshipService.findMany({
-    orderBy: { date: "desc" },
-    include: { assignments: true },
-  });
+  const services = await listWorshipServices();
+  const assignmentCounts = await Promise.all(
+    services.map((s) => listAssignmentsByService(s.id).then((a) => a.length)),
+  );
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold">예배 좌석 배치</h2>
-        <p className="text-sm text-stone-600">조별 구역 배치 및 인도용 화면</p>
+        <p className="text-sm text-stone-600">가족별 구역 배치 및 인도용 화면</p>
       </div>
 
+      <div
+        className={
+          canAdmin
+            ? "grid items-start gap-6 lg:grid-cols-[minmax(20rem,24rem)_1fr]"
+            : undefined
+        }
+      >
       {canAdmin && (
-        <Card className="p-4 sm:p-5">
+        <Card className="p-4 sm:p-5 lg:sticky lg:top-8">
           <h3 className="font-medium">새 예배 일정</h3>
           <form
             action={async (fd) => {
@@ -33,7 +40,7 @@ export default async function WorshipListPage() {
                 (fd.get("title") as string) || "주일예배",
               );
             }}
-            className="mt-3 flex flex-wrap gap-3"
+            className="mt-3 grid gap-3"
           >
             <div>
               <Label>날짜</Label>
@@ -43,7 +50,7 @@ export default async function WorshipListPage() {
               <Label>제목</Label>
               <Input name="title" placeholder="주일 2부 예배" />
             </div>
-            <Button type="submit" className="self-end">생성</Button>
+            <Button type="submit">생성</Button>
           </form>
         </Card>
       )}
@@ -51,19 +58,23 @@ export default async function WorshipListPage() {
       <Card>
         <CardHeader title="예배 목록" />
         <ul className="divide-y divide-stone-100">
-          {services.map((s) => (
+          {services.map((s, i) => (
             <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
               <div>
                 <p className="font-medium">{s.title}</p>
                 <p className="text-sm text-stone-500">{formatDateKo(s.date)}</p>
               </div>
               <Link href={`/worship/${s.id}`} className="text-sm font-medium underline">
-                배치 ({s.assignments.length}조)
+                배치 ({assignmentCounts[i]}가족)
               </Link>
             </li>
           ))}
+          {services.length === 0 && (
+            <li className="px-4 py-6 text-sm text-stone-500 sm:px-5">등록된 예배가 없습니다.</li>
+          )}
         </ul>
       </Card>
+      </div>
     </div>
   );
 }

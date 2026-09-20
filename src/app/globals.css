@@ -18,7 +18,8 @@ body {
 }
 
 @media print {
-  header {
+  header,
+  aside {
     display: none !important;
   }
 }

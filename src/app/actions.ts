@@ -1,15 +1,54 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { Role } from "@/generated/prisma/client";
 import {
   isPastorOrAdmin,
-  leaderCanAccessMember,
   leaderCanAccessGroup,
 } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { autoSuggestSharingGroups } from "@/lib/sharing";
+import {
+  assignMemberToGroup as assignMemberToGroupStore,
+  createGroup as createGroupStore,
+  createMember as createMemberStore,
+  handoverGroupLeader,
+  listAllMembers,
+} from "@/lib/store/groups";
+import { getUserById, updateOfficerTitle as updateOfficerTitleStore } from "@/lib/store/users";
+import {
+  addMeetingAsset,
+  createMeeting,
+  getMeetingById,
+  setMeetingPrayerLeader,
+  updateMeetingNotes as updateMeetingNotesStore,
+} from "@/lib/store/meetings";
+import { sendFamilyMessage } from "@/lib/store/reports";
+import {
+  autoSuggestSharingGroups,
+  getPlanById,
+  moveMemberSharing as moveMemberSharingStore,
+} from "@/lib/store/sharing";
+import { assignGroupSeating as assignGroupSeatingStore, createWorshipService as createWorshipServiceStore } from "@/lib/store/worship";
+import {
+  createAttendanceSunday as createAttendanceSundayStore,
+  importQrNames,
+  saveAttendanceMarks as saveAttendanceMarksStore,
+  type SaveMarkEntry,
+} from "@/lib/store/attendance";
+import {
+  createEventSurvey as createEventSurveyStore,
+  getEventSurveyById as getEventSurveyByIdStore,
+  saveSurveyResponses as saveSurveyResponsesStore,
+  setEventSurveyStatus as setEventSurveyStatusStore,
+  type SaveResponseEntry,
+} from "@/lib/store/surveys";
+import { parseNamesFromFile } from "@/lib/qr-import";
+import { uploadMeetingFile } from "@/lib/storage";
+import { getCurrentTerm, setCurrentTerm } from "@/lib/store/settings";
+import { nextTerm } from "@/lib/term";
+import type { AttendanceStatus, MeetingAssetKind, OfficerTitle, SurveyQuestion, SurveyQuestionType } from "@/lib/types";
+
+const MAX_SURVEY_QUESTIONS = 6;
 
 async function sessionUser() {
   const session = await auth();
@@ -17,27 +56,31 @@ async function sessionUser() {
   return session.user;
 }
 
-export async function sendPastoralMessage(memberId: string, body: string) {
+/** 가족 보고: 가장 ↔ 목사가 나누는 한 방. aboutMemberId를 태그하면 어떤 가족원 이야기인지 남는다. */
+export async function sendFamilyReportMessage(
+  groupId: string,
+  body: string,
+  aboutMemberId?: string | null,
+) {
   const user = await sessionUser();
   const trimmed = body.trim();
   if (!trimmed) return { error: "내용을 입력해 주세요." };
 
-  if (user.role === Role.LEADER) {
-    const ok = await leaderCanAccessMember(user.id, memberId);
+  if (user.role === "LEADER") {
+    const ok = await leaderCanAccessGroup(user.id, groupId);
     if (!ok) return { error: "권한이 없습니다." };
   } else if (!isPastorOrAdmin(user.role)) {
     return { error: "권한이 없습니다." };
   }
 
-  let thread = await prisma.pastoralThread.findUnique({ where: { memberId } });
-  if (!thread) {
-    thread = await prisma.pastoralThread.create({ data: { memberId } });
-  }
-
-  await prisma.pastoralMessage.create({
-    data: { threadId: thread.id, authorId: user.id, body: trimmed },
+  await sendFamilyMessage({
+    groupId,
+    authorId: user.id,
+    body: trimmed,
+    aboutMemberId: aboutMemberId || null,
   });
-  revalidatePath(`/reports/${memberId}`);
+
+  revalidatePath(`/reports/${groupId}`);
   revalidatePath("/reports");
   return { ok: true };
 }
@@ -46,38 +89,37 @@ export async function handoverLeader(groupId: string, newLeaderId: string) {
   const user = await sessionUser();
   if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
 
-  const group = await prisma.group.findUnique({ where: { id: groupId } });
-  if (!group) return { error: "조를 찾을 수 없습니다." };
-
-  const newLeader = await prisma.user.findUnique({ where: { id: newLeaderId } });
-  if (!newLeader || newLeader.role !== Role.LEADER) {
-    return { error: "새 조장은 조장 역할 사용자여야 합니다." };
+  const newLeader = await getUserById(newLeaderId);
+  if (!newLeader || newLeader.role !== "LEADER") {
+    return { error: "새 가장은 리더 역할 사용자여야 합니다." };
   }
 
-  const now = new Date();
-  if (group.currentLeaderId) {
-    const active = await prisma.groupLeaderTerm.findFirst({
-      where: { groupId, leaderId: group.currentLeaderId, endedAt: null },
-      orderBy: { startedAt: "desc" },
-    });
-    if (active) {
-      await prisma.groupLeaderTerm.update({
-        where: { id: active.id },
-        data: { endedAt: now },
-      });
-    }
-  }
-
-  await prisma.groupLeaderTerm.create({
-    data: { groupId, leaderId: newLeaderId, startedAt: now },
-  });
-  await prisma.group.update({
-    where: { id: groupId },
-    data: { currentLeaderId: newLeaderId },
-  });
+  await handoverGroupLeader(groupId, newLeaderId);
 
   revalidatePath("/admin/handover");
   revalidatePath("/groups");
+  return { ok: true };
+}
+
+export async function startNextFamilyTerm() {
+  const user = await sessionUser();
+  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  const current = await getCurrentTerm();
+  const next = nextTerm(current);
+  await setCurrentTerm(next);
+  revalidatePath("/admin/handover");
+  revalidatePath("/groups");
+  revalidatePath("/reports");
+  revalidatePath("/dashboard");
+  revalidatePath("/my-group");
+  return { ok: true, term: next };
+}
+
+export async function updateOfficerTitle(userId: string, officerTitle: OfficerTitle | "") {
+  const user = await sessionUser();
+  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  await updateOfficerTitleStore(userId, officerTitle || null);
+  revalidatePath("/admin/handover");
   return { ok: true };
 }
 
@@ -89,12 +131,10 @@ export async function createLeaderMeeting(data: {
   const user = await sessionUser();
   if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
 
-  const meeting = await prisma.leaderMeeting.create({
-    data: {
-      title: data.title,
-      date: new Date(data.date),
-      notes: data.notes || null,
-    },
+  const meeting = await createMeeting({
+    title: data.title,
+    date: new Date(data.date).toISOString(),
+    notes: data.notes || null,
   });
   revalidatePath("/meetings");
   return { ok: true, id: meeting.id };
@@ -103,10 +143,54 @@ export async function createLeaderMeeting(data: {
 export async function updateMeetingNotes(meetingId: string, notes: string) {
   const user = await sessionUser();
   if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
-  await prisma.leaderMeeting.update({
-    where: { id: meetingId },
-    data: { notes },
+  await updateMeetingNotesStore(meetingId, notes);
+  revalidatePath(`/meetings/${meetingId}`);
+  return { ok: true };
+}
+
+export async function setPrayerLeader(meetingId: string, leaderId: string) {
+  const user = await sessionUser();
+  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  await setMeetingPrayerLeader(meetingId, leaderId || null);
+  revalidatePath(`/meetings/${meetingId}`);
+  return { ok: true };
+}
+
+export async function uploadMeetingAsset(
+  meetingId: string,
+  kind: MeetingAssetKind,
+  formData: FormData,
+) {
+  const user = await sessionUser();
+  const file = formData.get("file") as File | null;
+  if (!file || file.size === 0) return { error: "파일을 선택해 주세요." };
+
+  if (kind === "SCORE") {
+    const meeting = await getMeetingById(meetingId);
+    if (!meeting) return { error: "모임을 찾을 수 없습니다." };
+    if (meeting.prayerLeaderId !== user.id && !isPastorOrAdmin(user.role)) {
+      return { error: "기도회 인도자만 악보를 올릴 수 있습니다." };
+    }
+  } else if (!isPastorOrAdmin(user.role)) {
+    return { error: "권한이 없습니다." };
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const storageKey = await uploadMeetingFile({
+    meetingId,
+    kind,
+    fileName: file.name,
+    buffer,
+    contentType: file.type,
   });
+  await addMeetingAsset({
+    meetingId,
+    kind,
+    fileName: file.name,
+    storageKey,
+    uploadedById: user.id,
+  });
+
   revalidatePath(`/meetings/${meetingId}`);
   return { ok: true };
 }
@@ -117,46 +201,29 @@ export async function createSharingPlan(
   useHomeGroups: boolean,
 ) {
   const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role) && user.role !== Role.LEADER) {
+  if (!isPastorOrAdmin(user.role) && user.role !== "LEADER") {
     return { error: "권한이 없습니다." };
   }
 
-  const existing = await prisma.sharingPlan.findUnique({
-    where: { meetingId },
-  });
-  if (existing) {
-    await prisma.sharingPlan.update({
-      where: { id: existing.id },
-      data: {
-        serviceDate: new Date(serviceDate),
-        useHomeGroups,
-      },
-    });
-    await autoSuggestSharingGroups(existing.id, 4);
-    revalidatePath(`/meetings/${meetingId}`);
-    return { ok: true, planId: existing.id };
-  }
-
-  const plan = await prisma.sharingPlan.create({
-    data: {
-      meetingId,
-      serviceDate: new Date(serviceDate),
-      useHomeGroups,
-    },
-  });
-  await autoSuggestSharingGroups(plan.id, 4);
+  const plan = await autoSuggestSharingGroups(
+    meetingId,
+    new Date(serviceDate).toISOString(),
+    useHomeGroups,
+    4,
+  );
   revalidatePath(`/meetings/${meetingId}`);
   return { ok: true, planId: plan.id };
 }
 
-export async function runAutoSharing(planId: string, groupCount: number) {
+export async function runAutoSharing(meetingId: string, planId: string, groupCount: number) {
   const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role) && user.role !== Role.LEADER) {
+  if (!isPastorOrAdmin(user.role) && user.role !== "LEADER") {
     return { error: "권한이 없습니다." };
   }
-  await autoSuggestSharingGroups(planId, groupCount);
-  const plan = await prisma.sharingPlan.findUnique({ where: { id: planId } });
-  if (plan?.meetingId) revalidatePath(`/meetings/${plan.meetingId}`);
+  const plan = await getPlanById(planId);
+  if (!plan) return { error: "조편성을 찾을 수 없습니다." };
+  await autoSuggestSharingGroups(meetingId, plan.serviceDate, plan.useHomeGroups, groupCount);
+  revalidatePath(`/meetings/${meetingId}`);
   return { ok: true };
 }
 
@@ -164,20 +231,14 @@ export async function moveMemberSharing(
   memberId: string,
   toSharingGroupId: string,
   planId: string,
+  meetingId: string,
 ) {
   const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role) && user.role !== Role.LEADER) {
+  if (!isPastorOrAdmin(user.role) && user.role !== "LEADER") {
     return { error: "권한이 없습니다." };
   }
-
-  await prisma.sharingAssignment.deleteMany({
-    where: { memberId, sharingGroup: { planId } },
-  });
-  await prisma.sharingAssignment.create({
-    data: { memberId, sharingGroupId: toSharingGroupId },
-  });
-  const plan = await prisma.sharingPlan.findUnique({ where: { id: planId } });
-  if (plan?.meetingId) revalidatePath(`/meetings/${plan.meetingId}`);
+  await moveMemberSharingStore(memberId, toSharingGroupId, planId);
+  revalidatePath(`/meetings/${meetingId}`);
   return { ok: true };
 }
 
@@ -185,40 +246,17 @@ export async function createWorshipService(date: string, title: string) {
   const user = await sessionUser();
   if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
 
-  const service = await prisma.worshipService.create({
-    data: { date: new Date(date), title },
-  });
-  const zoneNames = ["좌측 A구역", "중앙 B구역", "우측 C구역", "발코니 D구역"];
-  for (let i = 0; i < zoneNames.length; i++) {
-    await prisma.seatingZone.create({
-      data: {
-        serviceId: service.id,
-        name: zoneNames[i],
-        sortOrder: i,
-        gridRow: Math.floor(i / 2),
-        gridCol: i % 2,
-      },
-    });
-  }
+  const service = await createWorshipServiceStore(new Date(date).toISOString(), title);
   revalidatePath("/worship");
   return { ok: true, id: service.id };
 }
 
-export async function assignGroupSeating(
-  serviceId: string,
-  groupId: string,
-  zoneId: string,
-) {
+export async function assignGroupSeating(serviceId: string, groupId: string, zoneId: string) {
   const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role) && user.role !== Role.LEADER) {
+  if (!isPastorOrAdmin(user.role) && user.role !== "LEADER") {
     return { error: "권한이 없습니다." };
   }
-
-  await prisma.seatingAssignment.upsert({
-    where: { serviceId_groupId: { serviceId, groupId } },
-    create: { serviceId, groupId, zoneId },
-    update: { zoneId },
-  });
+  await assignGroupSeatingStore(serviceId, groupId, zoneId);
   revalidatePath(`/worship/${serviceId}`);
   return { ok: true };
 }
@@ -226,7 +264,7 @@ export async function assignGroupSeating(
 export async function createGroup(name: string, description?: string) {
   const user = await sessionUser();
   if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
-  await prisma.group.create({ data: { name, description: description || null } });
+  await createGroupStore(name, description || null);
   revalidatePath("/groups");
   return { ok: true };
 }
@@ -234,7 +272,7 @@ export async function createGroup(name: string, description?: string) {
 export async function assignMemberToGroup(memberId: string, groupId: string) {
   const user = await sessionUser();
   if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
-  await prisma.member.update({ where: { id: memberId }, data: { groupId } });
+  await assignMemberToGroupStore(memberId, groupId);
   revalidatePath("/groups");
   revalidatePath(`/groups/${groupId}`);
   return { ok: true };
@@ -246,9 +284,7 @@ export async function createMember(groupId: string, name: string, phone?: string
     const ok = await leaderCanAccessGroup(user.id, groupId);
     if (!ok) return { error: "권한이 없습니다." };
   }
-  await prisma.member.create({
-    data: { groupId, name, phone: phone || null },
-  });
+  await createMemberStore(groupId, name, phone || null);
   revalidatePath(`/groups/${groupId}`);
   revalidatePath("/my-group");
   return { ok: true };
@@ -258,4 +294,165 @@ export async function setGroupLeader(groupId: string, leaderId: string) {
   const user = await sessionUser();
   if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
   return handoverLeader(groupId, leaderId);
+}
+
+/** 목사/관리자가 새 주일을 연다. */
+export async function createAttendanceSunday(date: string, title: string) {
+  const user = await sessionUser();
+  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+
+  const sunday = await createAttendanceSundayStore(new Date(date).toISOString(), title || "주일예배");
+  revalidatePath("/attendance");
+  return { ok: true, id: sunday.id };
+}
+
+/**
+ * 가족원별 1-3부/4부 참석·방송을 저장한다. 가장은 자기 가족만, 목사/관리자는 어느 가족이든 저장할 수 있고
+ * QR도 수동으로 고칠 수 있다(`qr13_{memberId}` / `qr4_{memberId}` 체크박스가 폼에 있을 때만).
+ */
+export async function saveAttendanceMarks(sundayId: string, groupId: string, formData: FormData) {
+  const user = await sessionUser();
+  const canEditQr = isPastorOrAdmin(user.role);
+  if (!canEditQr) {
+    const ok = await leaderCanAccessGroup(user.id, groupId);
+    if (!ok) return { error: "권한이 없습니다." };
+  }
+
+  const memberIds = formData.getAll("memberId").map(String);
+  const entries: SaveMarkEntry[] = memberIds.map((memberId) => {
+    const s13Status = ((formData.get(`s13_${memberId}`) as string) || "none") as AttendanceStatus;
+    const s4Status = ((formData.get(`s4_${memberId}`) as string) || "none") as AttendanceStatus;
+    const familyMeeting = formData.get(`family_${memberId}`) === "on";
+    const entry: SaveMarkEntry = { memberId, groupId, s13Status, s4Status, familyMeeting };
+    if (canEditQr) {
+      entry.s13Qr = formData.get(`qr13_${memberId}`) === "on";
+      entry.s4Qr = formData.get(`qr4_${memberId}`) === "on";
+    }
+    return entry;
+  });
+
+  await saveAttendanceMarksStore(sundayId, entries, user.id);
+  revalidatePath(`/attendance/${sundayId}`);
+  revalidatePath(`/attendance/${sundayId}/${groupId}`);
+  revalidatePath("/attendance");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+/** QR 명단 파일(CSV/xlsx)을 업로드해 이름이 일치하는 가족원의 그 부 QR을 켠다. 목사/관리자만 가능. */
+export async function importAttendanceQr(sundayId: string, service: "s13" | "s4", formData: FormData) {
+  const user = await sessionUser();
+  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+
+  const file = formData.get("file") as File | null;
+  if (!file || file.size === 0) return { error: "파일을 선택해 주세요." };
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const names = await parseNamesFromFile(buffer, file.name);
+  if (names.length === 0) return { error: "파일에서 이름을 찾지 못했습니다." };
+
+  const members = await listAllMembers();
+  const result = await importQrNames({
+    sundayId,
+    service,
+    names,
+    members: members.map((m) => ({ id: m.id, groupId: m.groupId, name: m.name })),
+    updatedById: user.id,
+  });
+
+  revalidatePath(`/attendance/${sundayId}`);
+
+  const params = new URLSearchParams({
+    qrService: service,
+    qrMatched: String(result.matchedNames.length),
+    qrAmbiguous: result.ambiguousNames.join(","),
+    qrUnmatched: result.unmatchedNames.join(","),
+  });
+  redirect(`/attendance/${sundayId}?${params.toString()}`);
+}
+
+/** 목사/관리자가 참여조사를 만든다. q1_label..q6_label / q1_type..q6_type 필드로 질문을 받는다. */
+export async function createEventSurvey(formData: FormData) {
+  const user = await sessionUser();
+  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+
+  const title = ((formData.get("title") as string) || "").trim();
+  const eventDate = formData.get("eventDate") as string;
+  const description = ((formData.get("description") as string) || "").trim();
+  if (!title || !eventDate) return { error: "제목과 날짜를 입력해 주세요." };
+
+  const questions: SurveyQuestion[] = [];
+  for (let i = 1; i <= MAX_SURVEY_QUESTIONS; i++) {
+    const label = ((formData.get(`q${i}_label`) as string) || "").trim();
+    if (!label) continue;
+    const type = ((formData.get(`q${i}_type`) as string) || "yesno") as SurveyQuestionType;
+    questions.push({ id: `q${i}`, label, type });
+  }
+  if (questions.length === 0) return { error: "질문을 1개 이상 입력해 주세요." };
+
+  const survey = await createEventSurveyStore({
+    title,
+    eventDate: new Date(eventDate).toISOString(),
+    description: description || null,
+    questions,
+  });
+  revalidatePath("/surveys");
+  return { ok: true, id: survey.id };
+}
+
+export async function closeEventSurvey(surveyId: string) {
+  const user = await sessionUser();
+  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  await setEventSurveyStatusStore(surveyId, "closed");
+  revalidatePath(`/surveys/${surveyId}`);
+  revalidatePath("/surveys");
+  return { ok: true };
+}
+
+export async function reopenEventSurvey(surveyId: string) {
+  const user = await sessionUser();
+  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  await setEventSurveyStatusStore(surveyId, "open");
+  revalidatePath(`/surveys/${surveyId}`);
+  revalidatePath("/surveys");
+  return { ok: true };
+}
+
+/** 가장은 자기 가족원 응답만, 목사/관리자는 어느 가족이든 저장할 수 있다. */
+export async function saveSurveyResponses(surveyId: string, groupId: string, formData: FormData) {
+  const user = await sessionUser();
+  if (!isPastorOrAdmin(user.role)) {
+    const ok = await leaderCanAccessGroup(user.id, groupId);
+    if (!ok) return { error: "권한이 없습니다." };
+  }
+
+  const survey = await getEventSurveyByIdStore(surveyId);
+  if (!survey) return { error: "조사를 찾을 수 없습니다." };
+  if (survey.status === "closed" && !isPastorOrAdmin(user.role)) {
+    return { error: "마감된 조사입니다." };
+  }
+
+  const memberIds = formData.getAll("memberId").map(String);
+  const entries: SaveResponseEntry[] = memberIds.map((memberId) => {
+    const answers: Record<string, string | number | boolean> = {};
+    for (const q of survey.questions) {
+      const raw = formData.get(`${q.id}_${memberId}`);
+      if (raw === null) continue;
+      if (q.type === "yesno") {
+        answers[q.id] = raw === "on";
+      } else if (q.type === "number") {
+        const num = Number(raw);
+        if (!Number.isNaN(num) && String(raw).trim() !== "") answers[q.id] = num;
+      } else {
+        const text = String(raw).trim();
+        if (text) answers[q.id] = text;
+      }
+    }
+    return { memberId, groupId, answers };
+  });
+
+  await saveSurveyResponsesStore(surveyId, entries, user.id);
+  revalidatePath(`/surveys/${surveyId}`);
+  revalidatePath(`/surveys/${surveyId}/${groupId}`);
+  return { ok: true };
 }

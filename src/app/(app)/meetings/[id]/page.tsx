@@ -1,12 +1,36 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
-import { createSharingPlan, updateMeetingNotes } from "@/app/actions";
+import {
+  createSharingPlan,
+  setPrayerLeader,
+  updateMeetingNotes,
+  uploadMeetingAsset,
+} from "@/app/actions";
 import { SharingEditor } from "@/components/sharing-editor";
 import { Button, Card, CardHeader, Input, Label, Textarea } from "@/components/ui";
 import { isPastorOrAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { formatDateKo, formatDateTimeKo } from "@/lib/format";
+import { listAllMembers } from "@/lib/store/groups";
+import { getMeetingById, listAssetsByMeeting } from "@/lib/store/meetings";
+import {
+  listAssignmentsBySharingGroup,
+  listSharingGroupsByPlan,
+  getPlanByMeeting,
+} from "@/lib/store/sharing";
+import { listUsersByRole } from "@/lib/store/users";
+import {
+  SORTING_HAT_ADMIN_PATH,
+  SORTING_HAT_USER_PATH,
+  canManageSortingHat,
+} from "@/lib/sorting-hat";
+import type { MeetingAssetKind } from "@/lib/types";
+
+const ASSET_LABEL: Record<MeetingAssetKind, string> = {
+  LESSON: "교안",
+  LESSON_COMMENTARY: "교안 해설지",
+  SCORE: "악보",
+};
 
 export default async function MeetingDetailPage({
   params,
@@ -15,26 +39,45 @@ export default async function MeetingDetailPage({
 }) {
   const { id } = await params;
   const session = await auth();
-  const canEdit = isPastorOrAdmin(session!.user.role) || session!.user.role === "LEADER";
+  const user = session!.user;
+  const canAdmin = isPastorOrAdmin(user.role);
+  const canEdit = canAdmin || user.role === "LEADER";
 
-  const meeting = await prisma.leaderMeeting.findUnique({
-    where: { id },
-    include: {
-      sharingPlan: {
-        include: {
-          tempGroups: {
-            include: {
-              assignments: { include: { member: true } },
-            },
-            orderBy: { name: "asc" },
-          },
-        },
-      },
-    },
-  });
+  const meeting = await getMeetingById(id);
   if (!meeting) notFound();
 
-  const plan = meeting.sharingPlan;
+  const [assets, leaders, plan] = await Promise.all([
+    listAssetsByMeeting(id),
+    listUsersByRole("LEADER"),
+    getPlanByMeeting(id),
+  ]);
+
+  const lessonAssets = assets.filter((a) => a.kind === "LESSON" || a.kind === "LESSON_COMMENTARY");
+  const scoreAssets = assets.filter((a) => a.kind === "SCORE");
+
+  const prayerLeaderName = meeting.prayerLeaderId
+    ? leaders.find((l) => l.id === meeting.prayerLeaderId)?.name
+    : undefined;
+  const isPrayerLeader = meeting.prayerLeaderId === user.id;
+
+  let sharingGroups: { id: string; name: string; assignments: { member: { id: string; name: string } }[] }[] = [];
+  if (plan) {
+    const sgs = await listSharingGroupsByPlan(plan.id);
+    const allMembers = await listAllMembers();
+    sharingGroups = await Promise.all(
+      sgs.map(async (sg) => {
+        const assignments = await listAssignmentsBySharingGroup(sg.id);
+        return {
+          id: sg.id,
+          name: sg.name,
+          assignments: assignments
+            .map((a) => allMembers.find((m) => m.id === a.memberId))
+            .filter((m): m is NonNullable<typeof m> => !!m)
+            .map((m) => ({ member: { id: m.id, name: m.name } })),
+        };
+      }),
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -42,11 +85,138 @@ export default async function MeetingDetailPage({
         <Link href="/meetings" className="text-sm text-stone-600 underline">← 모임 목록</Link>
         <h2 className="mt-2 text-xl font-semibold">{meeting.title}</h2>
         <p className="text-sm text-stone-600">{formatDateTimeKo(meeting.date)}</p>
+        <p className="mt-1 text-xs text-stone-500">참석: 가장들 + 임원 + 목사</p>
       </div>
 
       <Card>
+        <CardHeader title="기본 자료" subtitle="교안·교안 해설지 (가장·임원 열람용)" />
+        <div className="space-y-3 p-4 sm:p-5">
+          <ul className="space-y-2">
+            {lessonAssets.map((a) => (
+              <li key={a.id} className="flex items-center justify-between rounded-lg border border-stone-200 px-3 py-2 text-sm">
+                <span>
+                  <span className="mr-2 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700">
+                    {ASSET_LABEL[a.kind]}
+                  </span>
+                  {a.fileName}
+                </span>
+                <a
+                  href={`/api/meetings/${id}/assets/${a.id}`}
+                  className="text-sm font-medium text-stone-800 underline"
+                >
+                  다운로드
+                </a>
+              </li>
+            ))}
+            {lessonAssets.length === 0 && (
+              <li className="text-sm text-stone-500">아직 없음</li>
+            )}
+          </ul>
+          {canAdmin && (
+            <div className="grid gap-3 border-t border-stone-100 pt-3 sm:grid-cols-2">
+              <form
+                action={async (fd) => {
+                  "use server";
+                  await uploadMeetingAsset(id, "LESSON", fd);
+                }}
+                className="space-y-2"
+              >
+                <Label>교안 업로드</Label>
+                <input type="file" name="file" required className="text-sm" />
+                <Button type="submit" variant="secondary">올리기</Button>
+              </form>
+              <form
+                action={async (fd) => {
+                  "use server";
+                  await uploadMeetingAsset(id, "LESSON_COMMENTARY", fd);
+                }}
+                className="space-y-2"
+              >
+                <Label>교안 해설지 업로드</Label>
+                <input type="file" name="file" required className="text-sm" />
+                <Button type="submit" variant="secondary">올리기</Button>
+              </form>
+            </div>
+          )}
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader title="리더 모임 전 기도회" subtitle="지정된 인도자만 악보를 올릴 수 있습니다" />
+        <div className="space-y-3 p-4 sm:p-5">
+          <p className="text-sm text-stone-700">
+            기도회 인도자: <span className="font-medium">{prayerLeaderName ?? "미지정"}</span>
+          </p>
+          {canAdmin && (
+            <form
+              action={async (fd) => {
+                "use server";
+                await setPrayerLeader(id, fd.get("prayerLeaderId") as string);
+              }}
+              className="flex flex-wrap items-end gap-3"
+            >
+              <select
+                name="prayerLeaderId"
+                defaultValue={meeting.prayerLeaderId ?? ""}
+                className="rounded-lg border border-stone-300 px-3 py-2 text-sm"
+              >
+                <option value="">미지정</option>
+                {leaders.map((l) => (
+                  <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+              </select>
+              <Button type="submit" variant="secondary">지정</Button>
+            </form>
+          )}
+          <ul className="space-y-2">
+            {scoreAssets.map((a) => (
+              <li key={a.id} className="flex items-center justify-between rounded-lg border border-stone-200 px-3 py-2 text-sm">
+                <span>{a.fileName}</span>
+                <a
+                  href={`/api/meetings/${id}/assets/${a.id}`}
+                  className="text-sm font-medium text-stone-800 underline"
+                >
+                  다운로드
+                </a>
+              </li>
+            ))}
+            {scoreAssets.length === 0 && (
+              <li className="text-sm text-stone-500">아직 악보 없음</li>
+            )}
+          </ul>
+          {(isPrayerLeader || canAdmin) && meeting.prayerLeaderId && (
+            <form
+              action={async (fd) => {
+                "use server";
+                await uploadMeetingAsset(id, "SCORE", fd);
+              }}
+              className="space-y-2 border-t border-stone-100 pt-3"
+            >
+              <Label>악보 업로드</Label>
+              <input type="file" name="file" required className="text-sm" />
+              <Button type="submit" variant="secondary">올리기</Button>
+            </form>
+          )}
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader title="현장 배정" subtitle="배정 모자로 오늘 출석 임원 수만큼 조를 만들고 가장을 배정합니다" />
+        <div className="flex flex-wrap gap-3 px-4 py-4 sm:px-5">
+          <Link href={SORTING_HAT_USER_PATH} className="text-sm font-medium text-stone-800 underline">
+            배정 모자 열기
+          </Link>
+          {canManageSortingHat(user.role) && (
+            <Link href={SORTING_HAT_ADMIN_PATH} className="text-sm font-medium text-stone-800 underline">
+              배정 관리
+            </Link>
+          )}
+        </div>
+      </Card>
+
+      <Card>
         <CardHeader title="모임 메모" />
-        {isPastorOrAdmin(session!.user.role) ? (
+        {canAdmin ? (
           <form
             action={async (fd) => {
               "use server";
@@ -67,7 +237,7 @@ export default async function MeetingDetailPage({
       <Card>
         <CardHeader
           title="주간 나눔 조편성"
-          subtitle="본조 고정 또는 임시 섞기"
+          subtitle="본조 고정 또는 임시 섞기 (주일 나눔용, 선택 사항)"
         />
         <div className="p-4 sm:p-5">
           {!plan && canEdit && (
@@ -80,7 +250,7 @@ export default async function MeetingDetailPage({
                   fd.get("useHomeGroups") === "on",
                 );
               }}
-              className="grid max-w-md gap-3"
+              className="grid gap-3 sm:max-w-md"
             >
               <div>
                 <Label>나눔 날짜</Label>
@@ -88,7 +258,7 @@ export default async function MeetingDetailPage({
               </div>
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" name="useHomeGroups" />
-                본조(홈 그룹) 그대로 사용
+                본가족(홈 그룹) 그대로 사용
               </label>
               <Button type="submit">조편성 만들기</Button>
             </form>
@@ -97,18 +267,13 @@ export default async function MeetingDetailPage({
             <>
               <p className="mb-4 text-sm text-stone-600">
                 나눔일: {formatDateKo(plan.serviceDate)} ·{" "}
-                {plan.useHomeGroups ? "본조 고정" : "임시 섞기"}
+                {plan.useHomeGroups ? "본가족 고정" : "임시 섞기"}
               </p>
               <SharingEditor
+                meetingId={id}
                 planId={plan.id}
                 useHomeGroups={plan.useHomeGroups}
-                groups={plan.tempGroups.map((g) => ({
-                  id: g.id,
-                  name: g.name,
-                  assignments: g.assignments.map((a) => ({
-                    member: { id: a.member.id, name: a.member.name },
-                  })),
-                }))}
+                groups={sharingGroups}
               />
             </>
           )}

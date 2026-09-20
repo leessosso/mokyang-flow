@@ -1,12 +1,12 @@
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 
-export function formatDateKo(d: Date) {
-  return format(d, "yyyy년 M월 d일 (EEE)", { locale: ko });
+export function formatDateKo(d: Date | string) {
+  return format(typeof d === "string" ? new Date(d) : d, "yyyy년 M월 d일 (EEE)", { locale: ko });
 }
 
-export function formatDateTimeKo(d: Date) {
-  return format(d, "yyyy년 M월 d일 HH:mm", { locale: ko });
+export function formatDateTimeKo(d: Date | string) {
+  return format(typeof d === "string" ? new Date(d) : d, "yyyy년 M월 d일 HH:mm", { locale: ko });
 }
 
 export function roleLabel(role: string) {
@@ -16,8 +16,10 @@ export function roleLabel(role: string) {
     case "ADMIN":
       return "관리자";
     case "LEADER":
-      return "조장";
+      return "리더";
     default:
       return role;
   }
 }
+
+export { termLabel } from "@/lib/term";

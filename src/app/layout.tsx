@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "2청년회 조장 운영",
-  description: "조장 모임·나눔 조편성·예배 좌석·양육 보고",
+  title: "2청년회 리더 운영",
+  description: "리더 모임·교안·기도회·배정 모자·가족 보고",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -23,7 +23,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="flex h-full min-h-full flex-col">{children}</body>
     </html>
   );
 }

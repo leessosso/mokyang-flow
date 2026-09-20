@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 본 앱은 firebase-admin 서버만 접근한다. 클라이언트 직접 읽기/쓰기는 막는다.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

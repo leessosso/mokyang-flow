@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>배정 시스템 - 조 편성</title>
+    <link rel="stylesheet" href="style.css?v=20260920b">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <header class="header">
+            <h1 class="title">배정 시스템</h1>
+            <p class="subtitle">조 배정 & 자리 선정</p>
+        </header>
+
+        <!-- 탭 메뉴 -->
+        <nav class="tab-nav">
+            <button class="tab-button active" data-tab="team">조 배정</button>
+            <button class="tab-button" data-tab="seat">자리 뽑기</button>
+        </nav>
+
+        <!-- 조 배정 탭 -->
+        <main class="main-content tab-content active" id="teamTab">
+            <!-- 배정 전 화면 -->
+            <div id="sortingScreen" class="sorting-screen">
+                <div class="hat-container">
+                    <img src="images/church-icon.png" alt="Church Icon" class="hat-image" id="hatImage">
+                </div>
+
+                <div class="input-section">
+                    <label for="nameInput" class="input-label">당신의 이름은?</label>
+                    <p class="guest-help">가장/사역팀장이 아닐 경우 게스트 버튼을 누르고 이름을 적어주세요</p>
+                    <div class="search-dropdown-wrapper">
+                        <input type="text" id="nameInput" class="name-input search-input" placeholder="이름을 검색하거나 선택하세요" autocomplete="off" maxlength="20">
+                        <div id="nameDropdown" class="dropdown-menu hidden">
+                            <!-- 드롭다운 목록이 동적으로 표시됩니다 -->
+                        </div>
+                    </div>
+                    <button type="button" id="guestToggle" class="guest-toggle" aria-pressed="false">게스트</button>
+                    <p id="guestHint" class="guest-hint hidden">게스트로 배정됩니다</p>
+                </div>
+
+                <button id="sortButton" class="sort-button">
+                    <span class="button-text">배정 시작</span>
+                </button>
+
+                <!-- 배정 중 대사 -->
+                <div id="thinkingText" class="thinking-text hidden"></div>
+
+                <!-- 상태 메시지 -->
+                <div id="statusMessage" class="status-message"></div>
+            </div>
+
+            <!-- 배정 완료 화면 -->
+            <div id="resultScreen" class="result-screen hidden">
+                <div class="confetti" id="confetti"></div>
+
+                <div class="result-content">
+                    <h2 class="result-title">당신의 조는...</h2>
+                    <div class="result-house" id="resultHouse"></div>
+                    <div class="result-leader">담당 임원: <span id="resultLeader"></span></div>
+                    <p class="result-message" id="resultMessage"></p>
+                </div>
+            </div>
+
+            <!-- 실시간 조 편성 현황판 (조 배정 탭 전용) -->
+            <section class="status-board">
+                <h3 class="board-title">현재 조 편성 현황</h3>
+                <div id="teamsList" class="teams-list">
+                    <p class="loading-text">현황을 불러오는 중...</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- 자리 뽑기 탭 -->
+        <main class="main-content tab-content" id="seatTab">
+            <!-- 뽑기 전 화면 -->
+            <div id="seatDrawScreen" class="sorting-screen">
+                <div class="seat-icon" aria-hidden="true">자리</div>
+
+                <div class="input-section">
+                    <label for="seatNameInput" class="input-label">이름을 검색하거나 선택하세요</label>
+                    <div class="search-dropdown-wrapper">
+                        <input type="text" id="seatNameInput" class="name-input search-input" placeholder="예: 승석이네" autocomplete="off" maxlength="20">
+                        <div id="seatNameDropdown" class="dropdown-menu hidden">
+                            <!-- 드롭다운 목록이 동적으로 표시됩니다 -->
+                        </div>
+                    </div>
+                </div>
+
+                <button id="seatDrawButton" class="sort-button">
+                    <span class="button-text">자리 뽑기</span>
+                </button>
+
+                <!-- 뽑는 중 표시 -->
+                <div id="seatThinkingText" class="thinking-text hidden"></div>
+
+                <!-- 상태 메시지 -->
+                <div id="seatStatusMessage" class="status-message"></div>
+            </div>
+
+            <!-- 자리 배정 완료 화면 -->
+            <div id="seatResultScreen" class="result-screen hidden">
+                <div class="confetti" id="seatConfetti"></div>
+
+                <div class="result-content">
+                    <h2 class="result-title">당신의 자리는...</h2>
+                    <div class="result-house seat-number" id="seatNumber"></div>
+                    <div class="result-seat-name" id="seatResultName" aria-hidden="true"></div>
+                    <p class="result-message" id="seatMessage"></p>
+                </div>
+            </div>
+
+            <!-- 실시간 자리 현황판: 배치도 + 그리드 전환 -->
+            <section id="seatStatusBoard" class="status-board hidden">
+                <h3 class="board-title">자리 배정 현황</h3>
+                <div class="seat-view-toggle">
+                    <button type="button" class="toggle-btn active" data-view="map" aria-pressed="true">배치도</button>
+                    <button type="button" class="toggle-btn" data-view="grid" aria-pressed="false">목록</button>
+                </div>
+                <div id="seatMapView" class="seat-map-wrap">
+                    <div class="seat-layout">
+                        <div class="seat-stage">강대상</div>
+
+                        <div class="seat-top-grid">
+                            <div class="seat-slot seat-slot-numbered available" data-seat-number="1"><span class="seat-slot-label">1</span><span class="seat-slot-name">-</span></div>
+                            <div class="seat-slot seat-slot-numbered available" data-seat-number="2"><span class="seat-slot-label">2</span><span class="seat-slot-name">-</span></div>
+                            <div class="seat-slot seat-slot-dark"></div>
+                            <div class="seat-slot seat-slot-dark"></div>
+
+                            <div class="seat-slot seat-slot-numbered available" data-seat-number="3"><span class="seat-slot-label">3</span><span class="seat-slot-name">-</span></div>
+                            <div class="seat-slot seat-slot-numbered available" data-seat-number="4"><span class="seat-slot-label">4</span><span class="seat-slot-name">-</span></div>
+                        </div>
+
+                        <div class="seat-aisle">통로</div>
+
+                        <div class="seat-main-grid">
+                            <div class="seat-column">
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="5"><span class="seat-slot-label">5</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="6"><span class="seat-slot-label">6</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="7"><span class="seat-slot-label">7</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="8"><span class="seat-slot-label">8</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="9"><span class="seat-slot-label">9</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="10"><span class="seat-slot-label">10</span><span class="seat-slot-name">-</span></div>
+                            </div>
+
+                            <div class="seat-column">
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="11"><span class="seat-slot-label">11</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="12"><span class="seat-slot-label">12</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="13"><span class="seat-slot-label">13</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="14"><span class="seat-slot-label">14</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="15"><span class="seat-slot-label">15</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="16"><span class="seat-slot-label">16</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available seat-slot-17" data-seat-number="17"><span class="seat-slot-label">17</span><span class="seat-slot-name">-</span></div>
+                            </div>
+
+                            <div class="seat-column">
+                                <div class="seat-slot seat-slot-team">새가족팀</div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="18"><span class="seat-slot-label">18</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="19"><span class="seat-slot-label">19</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="20"><span class="seat-slot-label">20</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="21"><span class="seat-slot-label">21</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="22"><span class="seat-slot-label">22</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="23"><span class="seat-slot-label">23</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="24"><span class="seat-slot-label">24</span><span class="seat-slot-name">-</span></div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <div id="seatGridView" class="seat-grid-wrap hidden">
+                    <div id="seatsList" class="seats-grid">
+                        <p class="loading-text">현황을 불러오는 중...</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <!-- Firebase Config -->
+    <script src="firebase-config.js"></script>
+
+    <!-- App Script -->
+    <script src="app.js?v=20260801f"></script>
+
+    <script>
+        // 사용자 앱 초기화
+        if (typeof initUserApp === 'function') {
+            initUserApp();
+        }
+    </script>
+</body>
+
+</html>
