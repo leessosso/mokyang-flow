@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { db } from "../src/lib/firebase-admin";
+import { getDb } from "../src/lib/firebase-admin";
 import { hashPassword } from "../src/lib/password";
 
 const COLLECTIONS = [
@@ -22,7 +22,7 @@ const COLLECTIONS = [
 
 async function clearAll() {
   for (const name of COLLECTIONS) {
-    const snap = await db.collection(name).get();
+    const snap = await getDb().collection(name).get();
     await Promise.all(snap.docs.map((d) => d.ref.delete()));
   }
 }
@@ -39,7 +39,7 @@ async function main() {
     role: "PASTOR" | "LEADER" | "ADMIN";
     officerTitle?: string | null;
   }) {
-    const ref = db.collection("users").doc();
+    const ref = getDb().collection("users").doc();
     await ref.set({
       email: data.email,
       passwordHash,
@@ -67,10 +67,10 @@ async function main() {
     officerTitle: "총무",
   });
 
-  await db.collection("settings").doc("app").set({ year: 2026, half: "H1" });
+  await getDb().collection("settings").doc("app").set({ year: 2026, half: "H1" });
 
   async function addGroup(name: string, description: string, currentLeaderId: string, year: number, half: "H1" | "H2") {
-    const ref = db.collection("groups").doc();
+    const ref = getDb().collection("groups").doc();
     await ref.set({ name, description, currentLeaderId, year, half });
     return ref.id;
   }
@@ -86,7 +86,7 @@ async function main() {
     [g2Id, leader2Id],
     [g3Id, leader3Id],
   ] as const) {
-    await db.collection("groupLeaderTerms").doc().set({
+    await getDb().collection("groupLeaderTerms").doc().set({
       groupId,
       leaderId,
       year: 2026,
@@ -97,7 +97,7 @@ async function main() {
   }
 
   // 2025 하반기 3가족 가장 (학기 재구성 데모)
-  await db.collection("groupLeaderTerms").doc().set({
+  await getDb().collection("groupLeaderTerms").doc().set({
     groupId: g3PrevId,
     leaderId: leader1Id,
     year: 2025,
@@ -107,7 +107,7 @@ async function main() {
   });
 
   async function addMember(groupId: string, name: string) {
-    const ref = db.collection("members").doc();
+    const ref = getDb().collection("members").doc();
     await ref.set({ groupId, name, phone: null, createdAt: now });
     return ref.id;
   }
@@ -130,16 +130,16 @@ async function main() {
   }
 
   // 가족 보고: 1가족 방 하나에 가족원 태그된 메시지 2건
-  const threadRef = db.collection("pastoralThreads").doc();
+  const threadRef = getDb().collection("pastoralThreads").doc();
   await threadRef.set({ groupId: g1Id, createdAt: now, updatedAt: now });
-  await db.collection("pastoralMessages").doc().set({
+  await getDb().collection("pastoralMessages").doc().set({
     threadId: threadRef.id,
     authorId: leader1Id,
     body: "민수 형제가 최근 직장 스트레스로 예배 참석이 불규칙합니다. 기도 부탁드립니다.",
     aboutMemberId: memberIds["김민수"],
     createdAt: now,
   });
-  await db.collection("pastoralMessages").doc().set({
+  await getDb().collection("pastoralMessages").doc().set({
     threadId: threadRef.id,
     authorId: pastorId,
     body: "함께 기도하겠습니다. 다음 주에 가볍게 만나 뵙는 것도 좋겠습니다.",
@@ -148,7 +148,7 @@ async function main() {
   });
 
   // 리더 모임
-  const meetingRef = db.collection("leaderMeetings").doc();
+  const meetingRef = getDb().collection("leaderMeetings").doc();
   await meetingRef.set({
     title: "3월 1주 리더 모임",
     date: "2026-03-05T19:30:00.000Z",
@@ -157,34 +157,34 @@ async function main() {
     createdAt: now,
   });
 
-  const planRef = db.collection("sharingPlans").doc();
+  const planRef = getDb().collection("sharingPlans").doc();
   await planRef.set({
     meetingId: meetingRef.id,
     serviceDate: "2026-03-05T00:00:00.000Z",
     useHomeGroups: false,
   });
 
-  const sg1Ref = db.collection("sharingGroups").doc();
+  const sg1Ref = getDb().collection("sharingGroups").doc();
   await sg1Ref.set({ planId: planRef.id, name: "나눔조 A", homeGroupId: null });
-  const sg2Ref = db.collection("sharingGroups").doc();
+  const sg2Ref = getDb().collection("sharingGroups").doc();
   await sg2Ref.set({ planId: planRef.id, name: "나눔조 B", homeGroupId: null });
 
   const memberIdList = Object.values(memberIds);
   for (let i = 0; i < 5; i++) {
-    await db.collection("sharingAssignments").doc().set({
+    await getDb().collection("sharingAssignments").doc().set({
       sharingGroupId: i % 2 === 0 ? sg1Ref.id : sg2Ref.id,
       memberId: memberIdList[i],
     });
   }
 
   // 주일 예배 좌석
-  const serviceRef = db.collection("worshipServices").doc();
+  const serviceRef = getDb().collection("worshipServices").doc();
   await serviceRef.set({ date: "2026-03-09T11:00:00.000Z", title: "주일 2부 예배" });
 
   const zoneNames = ["좌측 A구역", "중앙 B구역", "우측 C구역", "발코니 D구역"];
   const zoneIds: string[] = [];
   for (let i = 0; i < zoneNames.length; i++) {
-    const zoneRef = db.collection("seatingZones").doc();
+    const zoneRef = getDb().collection("seatingZones").doc();
     await zoneRef.set({
       serviceId: serviceRef.id,
       name: zoneNames[i],
@@ -195,9 +195,9 @@ async function main() {
     zoneIds.push(zoneRef.id);
   }
 
-  await db.collection("seatingAssignments").doc().set({ serviceId: serviceRef.id, zoneId: zoneIds[0], groupId: g1Id });
-  await db.collection("seatingAssignments").doc().set({ serviceId: serviceRef.id, zoneId: zoneIds[1], groupId: g2Id });
-  await db.collection("seatingAssignments").doc().set({ serviceId: serviceRef.id, zoneId: zoneIds[2], groupId: g3Id });
+  await getDb().collection("seatingAssignments").doc().set({ serviceId: serviceRef.id, zoneId: zoneIds[0], groupId: g1Id });
+  await getDb().collection("seatingAssignments").doc().set({ serviceId: serviceRef.id, zoneId: zoneIds[1], groupId: g2Id });
+  await getDb().collection("seatingAssignments").doc().set({ serviceId: serviceRef.id, zoneId: zoneIds[2], groupId: g3Id });
 
   console.log("시드 완료");
   console.log("목사:", "pastor@church.demo", "/ demo1234");

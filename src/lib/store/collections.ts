@@ -1,5 +1,5 @@
 import type { CollectionReference, DocumentData, QueryDocumentSnapshot } from "firebase-admin/firestore";
-import { db } from "@/lib/firebase-admin";
+import { getDb } from "@/lib/firebase-admin";
 import type {
   AttendanceMark,
   AttendanceSunday,
@@ -22,29 +22,37 @@ import type {
 } from "@/lib/types";
 import type { Term } from "@/lib/term";
 
-function collection<T extends DocumentData>(name: string) {
-  return db.collection(name) as CollectionReference<T>;
+/** 빌드 시 Firestore에 연결하지 않도록 컬렉션 참조를 첫 사용 시점에 만든다. */
+function lazyCollection<T extends DocumentData>(name: string): CollectionReference<T> {
+  let ref: CollectionReference<T> | undefined;
+  return new Proxy({} as CollectionReference<T>, {
+    get(_target, prop) {
+      if (!ref) ref = getDb().collection(name) as CollectionReference<T>;
+      const value = Reflect.get(ref, prop, ref);
+      return typeof value === "function" ? value.bind(ref) : value;
+    },
+  });
 }
 
-export const usersCol = collection<Omit<User, "id">>("users");
-export const groupsCol = collection<Omit<Group, "id">>("groups");
-export const membersCol = collection<Omit<Member, "id">>("members");
-export const groupLeaderTermsCol = collection<Omit<GroupLeaderTerm, "id">>("groupLeaderTerms");
-export const leaderMeetingsCol = collection<Omit<LeaderMeeting, "id">>("leaderMeetings");
-export const meetingAssetsCol = collection<Omit<MeetingAsset, "id">>("meetingAssets");
-export const sharingPlansCol = collection<Omit<SharingPlan, "id">>("sharingPlans");
-export const sharingGroupsCol = collection<Omit<SharingGroup, "id">>("sharingGroups");
-export const sharingAssignmentsCol = collection<Omit<SharingAssignment, "id">>("sharingAssignments");
-export const worshipServicesCol = collection<Omit<WorshipService, "id">>("worshipServices");
-export const seatingZonesCol = collection<Omit<SeatingZone, "id">>("seatingZones");
-export const seatingAssignmentsCol = collection<Omit<SeatingAssignment, "id">>("seatingAssignments");
-export const pastoralThreadsCol = collection<Omit<PastoralThread, "id">>("pastoralThreads");
-export const pastoralMessagesCol = collection<Omit<PastoralMessage, "id">>("pastoralMessages");
-export const settingsCol = collection<Term>("settings");
-export const attendanceSundaysCol = collection<Omit<AttendanceSunday, "id">>("attendanceSundays");
-export const attendanceMarksCol = collection<Omit<AttendanceMark, "id">>("attendanceMarks");
-export const eventSurveysCol = collection<Omit<EventSurvey, "id">>("eventSurveys");
-export const eventResponsesCol = collection<Omit<EventResponse, "id">>("eventResponses");
+export const usersCol = lazyCollection<Omit<User, "id">>("users");
+export const groupsCol = lazyCollection<Omit<Group, "id">>("groups");
+export const membersCol = lazyCollection<Omit<Member, "id">>("members");
+export const groupLeaderTermsCol = lazyCollection<Omit<GroupLeaderTerm, "id">>("groupLeaderTerms");
+export const leaderMeetingsCol = lazyCollection<Omit<LeaderMeeting, "id">>("leaderMeetings");
+export const meetingAssetsCol = lazyCollection<Omit<MeetingAsset, "id">>("meetingAssets");
+export const sharingPlansCol = lazyCollection<Omit<SharingPlan, "id">>("sharingPlans");
+export const sharingGroupsCol = lazyCollection<Omit<SharingGroup, "id">>("sharingGroups");
+export const sharingAssignmentsCol = lazyCollection<Omit<SharingAssignment, "id">>("sharingAssignments");
+export const worshipServicesCol = lazyCollection<Omit<WorshipService, "id">>("worshipServices");
+export const seatingZonesCol = lazyCollection<Omit<SeatingZone, "id">>("seatingZones");
+export const seatingAssignmentsCol = lazyCollection<Omit<SeatingAssignment, "id">>("seatingAssignments");
+export const pastoralThreadsCol = lazyCollection<Omit<PastoralThread, "id">>("pastoralThreads");
+export const pastoralMessagesCol = lazyCollection<Omit<PastoralMessage, "id">>("pastoralMessages");
+export const settingsCol = lazyCollection<Term>("settings");
+export const attendanceSundaysCol = lazyCollection<Omit<AttendanceSunday, "id">>("attendanceSundays");
+export const attendanceMarksCol = lazyCollection<Omit<AttendanceMark, "id">>("attendanceMarks");
+export const eventSurveysCol = lazyCollection<Omit<EventSurvey, "id">>("eventSurveys");
+export const eventResponsesCol = lazyCollection<Omit<EventResponse, "id">>("eventResponses");
 
 export function withId<T extends DocumentData>(
   snap: QueryDocumentSnapshot<T>,
