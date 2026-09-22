@@ -1,5 +1,6 @@
 import { signOut } from "@/auth";
 import type { Role } from "@/lib/types";
+import { DeploySmokeBadge } from "@/components/deploy-smoke-badge";
 import { AppMain } from "@/components/app-main";
 import { AppNav, type NavItem } from "@/components/app-nav";
 import { isPastorOrAdmin } from "@/lib/auth";
@@ -70,6 +71,7 @@ export function AppShell({
             2청년회
           </p>
           <h1 className="mt-0.5 text-lg font-semibold text-stone-900">리더 운영</h1>
+          <DeploySmokeBadge className="mt-2" />
         </div>
         <AppNav items={nav} variant="desktop" />
         <div className="mt-auto border-t border-stone-100 px-3 py-4">
@@ -87,6 +89,7 @@ export function AppShell({
                 2청년회
               </p>
               <h1 className="text-lg font-semibold text-stone-900">리더 운영</h1>
+              <DeploySmokeBadge className="mt-1" />
             </div>
             <div className="flex min-w-0 items-center gap-2">
               <div className="min-w-0 text-right text-sm">
