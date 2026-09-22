@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { auth, signIn } from "@/auth";
+import { DeploySmokeBadge } from "@/components/deploy-smoke-badge";
 import { Button, Card, Input, Label } from "@/components/ui";
 
 export default async function LoginPage({
@@ -20,6 +21,7 @@ export default async function LoginPage({
           2청년회
         </p>
         <h1 className="mt-2 text-4xl font-semibold">리더 운영</h1>
+        <DeploySmokeBadge className="mt-3" />
         <p className="mt-4 max-w-sm text-sm leading-6 text-stone-300">
           리더 모임 자료, 배정 모자, 가족 보고를 한곳에서 관리합니다.
         </p>
@@ -36,6 +38,7 @@ export default async function LoginPage({
           <p className="mt-2 text-sm text-stone-600">
             가장·임원·목사 전용 운영 도구입니다.
           </p>
+          <DeploySmokeBadge className="mt-2 lg:hidden" />
         </div>
         {error ? (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
