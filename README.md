@@ -101,7 +101,7 @@ npm run dev
 
 기존 Firebase Realtime Database를 그대로 씁니다. 본 앱의 Firestore와는 별개 데이터입니다 (동시성이 필요한 현장 배정만 RTDB에 둡니다).
 
-로컬에서 쓰려면 `public/sorting-hat/firebase-config.example.js`를 `public/sorting-hat/firebase-config.js`로 복사한 뒤 Firebase 값을 넣습니다.
+`public/sorting-hat/firebase-config.js`에 sorting-hat RTDB용 **웹 클라이언트 설정**이 포함되어 있어 Vercel 등 배포 환경에서도 바로 동작합니다 (Firebase가 브라우저에 노출하도록 설계한 공개 값이며, 서비스 계정 키와는 별개입니다). 다른 Firebase 프로젝트로 바꿀 때만 `firebase-config.example.js`를 참고해 값을 수정합니다.
 
 | 화면 | URL |
 |------|-----|

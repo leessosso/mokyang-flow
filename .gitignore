@@ -44,9 +44,6 @@ next-env.d.ts
 serviceAccountKey.json
 *-firebase-adminsdk-*.json
 
-# sorting-hat Firebase 설정 (민감 정보)
-/public/sorting-hat/firebase-config.js
-
 # Firebase emulator cache
 .firebase/
 firebase-debug.log

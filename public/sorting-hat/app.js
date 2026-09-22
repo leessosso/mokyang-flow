@@ -1,8 +1,7 @@
 // ========================================
 // Firebase 설정
 // ========================================
-// firebaseConfig는 firebase-config.js에서 로드됩니다
-// (로컬 개발: firebase-config.js 파일 / GitHub Pages: GitHub Actions에서 자동 생성)
+// firebaseConfig는 firebase-config.js에서 로드됩니다 (public/, 배포 시 함께 제공)
 
 // Firebase 초기화
 let database;
