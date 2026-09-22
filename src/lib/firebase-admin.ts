@@ -27,35 +27,48 @@ function emulatorCertificate(projectId: string) {
   });
 }
 
+let app: App | undefined;
+let firestore: Firestore | undefined;
+let storageBucket: ReturnType<ReturnType<typeof getStorage>["bucket"]> | undefined;
+
 /**
  * 본 앱(가족·가장·리더모임·가족 보고)의 유일한 데이터 계층입니다.
  * Firestore를 관계형 데이터에, Storage를 교안/해설지/악보 파일에 씁니다.
  * 배정 모자(public/sorting-hat)는 별도로 Realtime Database를 씁니다 — 여기서 다루지 않습니다.
+ *
+ * 초기화는 첫 사용 시점에만 수행합니다. `next build`의 페이지 데이터 수집 단계에서는
+ * Firebase env가 없어도 import만으로 실패하지 않습니다.
  */
-function buildApp(): App {
-  if (getApps().length) return getApps()[0];
+function ensureApp(): App {
+  if (app) return app;
+  if (getApps().length) {
+    app = getApps()[0];
+    return app;
+  }
 
   const projectId = process.env.FIREBASE_PROJECT_ID ?? "demo-mokyang-flow";
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET ?? `${projectId}.appspot.com`;
+  const bucketName = process.env.FIREBASE_STORAGE_BUCKET ?? `${projectId}.appspot.com`;
 
   process.env.GOOGLE_CLOUD_PROJECT ??= projectId;
   process.env.GCLOUD_PROJECT ??= projectId;
 
   if (usingEmulator()) {
-    return initializeApp({
+    app = initializeApp({
       projectId,
-      storageBucket,
+      storageBucket: bucketName,
       credential: emulatorCertificate(projectId),
     });
+    return app;
   }
 
   if (clientEmail && privateKey) {
-    return initializeApp({
+    app = initializeApp({
       credential: cert({ projectId, clientEmail, privateKey }),
-      storageBucket,
+      storageBucket: bucketName,
     });
+    return app;
   }
 
   throw new Error(
@@ -63,7 +76,12 @@ function buildApp(): App {
   );
 }
 
-const app = buildApp();
+export function getDb(): Firestore {
+  if (!firestore) firestore = getFirestore(ensureApp());
+  return firestore;
+}
 
-export const db: Firestore = getFirestore(app);
-export const bucket = getStorage(app).bucket();
+export function getBucket() {
+  if (!storageBucket) storageBucket = getStorage(ensureApp()).bucket();
+  return storageBucket;
+}
