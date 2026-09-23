@@ -28,17 +28,37 @@
 
 **로컬 개발 (에뮬레이터, 권장)**
 
-```bash
-npm install -g firebase-tools   # 최초 1회
-`firebase emulators:start --only firestore,storage --project demo-mokyang-flow`
+Firestore와 Storage만 로컬에서 돌립니다. 프로젝트 ID는 `demo-`로 시작해야 실제 Firebase에 붙지 않고 데모 설정으로 동작합니다.
 
-에뮬레이터 UI는 [http://127.0.0.1:4000](http://127.0.0.1:4000) 입니다. macOS에서는 Java가 필요합니다. Homebrew로 `brew install openjdk` 한 뒤:
+1. Firebase CLI를 설치합니다. 이미 있으면 건너뜁니다.
 
 ```bash
+npm install -g firebase-tools
+```
+
+2. macOS에서는 Java가 필요합니다. Homebrew OpenJDK가 있어도 PATH에 없으면 에뮬레이터가 시작하지 않습니다.
+
+```bash
+brew install openjdk
 export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
 export JAVA_HOME="/opt/homebrew/opt/openjdk"
 ```
+
+3. 앱 폴더에서 에뮬레이터를 켭니다. 이 터미널은 켜 둔 채로 둡니다.
+
+```bash
+firebase emulators:start --only firestore,storage --project demo-mokyang-flow
 ```
+
+준비되면 아래 주소로 붙습니다.
+
+| 서비스 | 주소 |
+|--------|------|
+| 에뮬레이터 UI | [http://127.0.0.1:4000](http://127.0.0.1:4000) |
+| Firestore | `127.0.0.1:8080` |
+| Storage | `127.0.0.1:9199` |
+
+에뮬레이터를 끄면 메모리에만 있던 데이터가 사라집니다. 다시 켠 뒤에는 `npm run db:seed`로 데모 데이터를 다시 넣습니다.
 
 `.env`:
 
@@ -63,6 +83,8 @@ FIREBASE_STORAGE_BUCKET="....appspot.com"
 ```
 
 ### 2) 설치·시드·실행
+
+에뮬레이터가 켜진 상태에서 다른 터미널로 실행합니다.
 
 ```bash
 npm install
