@@ -18,8 +18,17 @@ import { getUserById, updateOfficerTitle as updateOfficerTitleStore, updateServi
 import { getGroupById } from "@/lib/store/groups";
 import {
   notifyPastorsAndAdminsOfFamilyReport,
+  notifyUsersOfAnnouncement,
   notifyUsersOfServingDutyAssignment,
 } from "@/lib/push-notifications";
+import {
+  createAnnouncementDraft,
+  getAnnouncementById as getAnnouncementByIdStore,
+  markAnnouncementSent,
+  resolveAnnouncementRecipientUserIds,
+  updateAnnouncementDraft,
+  deleteAnnouncementDraft,
+} from "@/lib/store/announcements";
 import {
   addMeetingAsset,
   createMeeting,
@@ -52,7 +61,16 @@ import { parseNamesFromFile } from "@/lib/qr-import";
 import { uploadMeetingFile } from "@/lib/storage";
 import { getCurrentTerm, setCurrentTerm } from "@/lib/store/settings";
 import { nextTerm } from "@/lib/term";
-import type { AttendanceStatus, MeetingAssetKind, OfficerTitle, ServingDutyKey, SurveyQuestion, SurveyQuestionType } from "@/lib/types";
+import type {
+  AnnouncementAudience,
+  AttendanceStatus,
+  MeetingAssetKind,
+  OfficerTitle,
+  ServingDutyKey,
+  SurveyQuestion,
+  SurveyQuestionType,
+} from "@/lib/types";
+import { canManageAnnouncements } from "@/lib/types";
 import { SERVING_DUTIES, SERVING_DUTY_BY_KEY } from "@/lib/types";
 
 const MAX_SURVEY_QUESTIONS = 6;
@@ -61,6 +79,67 @@ async function sessionUser() {
   const session = await auth();
   if (!session?.user?.id) throw new Error("UNAUTHORIZED");
   return session.user;
+}
+
+async function requireAnnouncementManager() {
+  const user = await sessionUser();
+  const full = await getUserById(user.id);
+  if (!full || !canManageAnnouncements(full)) {
+    return { error: "권한이 없습니다." as const, user: null };
+  }
+  return { user: full, error: null };
+}
+
+function parseAnnouncementAudience(raw: FormDataEntryValue | null): AnnouncementAudience | null {
+  if (raw === "all" || raw === "leaders" || raw === "users") return raw;
+  return null;
+}
+
+function parseAnnouncementFields(formData: FormData) {
+  const title = ((formData.get("title") as string) || "").trim();
+  const body = ((formData.get("body") as string) || "").trim();
+  const audience = parseAnnouncementAudience(formData.get("audience"));
+  const selectedUserIds = formData.getAll("selectedUserIds").map(String).filter(Boolean);
+  const intent = formData.get("intent") === "send" ? "send" : "draft";
+  return { title, body, audience, selectedUserIds, intent };
+}
+
+async function sendAnnouncementPush(announcementId: string, sentById: string) {
+  const ann = await getAnnouncementByIdStore(announcementId);
+  if (!ann) return { error: "공지를 찾을 수 없습니다." };
+  if (ann.status === "sent") return { error: "이미 발송된 공지입니다." };
+
+  if (ann.audience === "users" && ann.selectedUserIds.length === 0) {
+    return { error: "발송 대상 사용자를 1명 이상 선택해 주세요." };
+  }
+
+  const recipientIds = await resolveAnnouncementRecipientUserIds(ann.audience, ann.selectedUserIds);
+
+  let pushSuccessCount = 0;
+  let pushFailureCount = 0;
+  try {
+    const stats = await notifyUsersOfAnnouncement({
+      userIds: recipientIds,
+      announcementId: ann.id,
+      title: ann.title,
+      bodyPreview: ann.body,
+    });
+    pushSuccessCount = stats.successCount;
+    pushFailureCount = stats.failureCount;
+  } catch (err) {
+    console.error("[push] announcement notify failed", err);
+    return { error: "푸시 발송에 실패했습니다. 잠시 후 다시 시도해 주세요." };
+  }
+
+  await markAnnouncementSent(announcementId, {
+    sentById,
+    pushSuccessCount,
+    pushFailureCount,
+  });
+
+  revalidatePath("/announcements");
+  revalidatePath(`/announcements/${announcementId}`);
+  return { ok: true as const, pushSuccessCount, pushFailureCount, recipientCount: recipientIds.length };
 }
 
 /** 가족 보고: 가장 ↔ 목사가 나누는 한 방. aboutMemberId를 태그하면 어떤 가족원 이야기인지 남는다. */
@@ -543,4 +622,78 @@ export async function saveSurveyResponses(surveyId: string, groupId: string, for
   revalidatePath(`/surveys/${surveyId}`);
   revalidatePath(`/surveys/${surveyId}/${groupId}`);
   return { ok: true };
+}
+
+/** 공지 임시저장 또는 지금 보내기 (신규). */
+export async function createAnnouncement(formData: FormData) {
+  const authz = await requireAnnouncementManager();
+  if (authz.error) return { error: authz.error };
+
+  const { title, body, audience, selectedUserIds, intent } = parseAnnouncementFields(formData);
+  if (!title || !body) return { error: "제목과 본문을 입력해 주세요." };
+  if (!audience) return { error: "발송 대상을 선택해 주세요." };
+  if (audience === "users" && selectedUserIds.length === 0 && intent === "send") {
+    return { error: "발송 대상 사용자를 1명 이상 선택해 주세요." };
+  }
+
+  const draft = await createAnnouncementDraft({
+    title,
+    body,
+    audience,
+    selectedUserIds,
+    createdById: authz.user!.id,
+  });
+
+  revalidatePath("/announcements");
+
+  if (intent === "draft") {
+    redirect(`/announcements/${draft.id}`);
+  }
+
+  const sent = await sendAnnouncementPush(draft.id, authz.user!.id);
+  if (sent.error) {
+    redirect(`/announcements/${draft.id}?sendError=${encodeURIComponent(sent.error)}`);
+  }
+  redirect(`/announcements/${draft.id}?sent=1`);
+}
+
+/** 임시저장 공지 수정·발송. */
+export async function updateAnnouncement(announcementId: string, formData: FormData) {
+  const authz = await requireAnnouncementManager();
+  if (authz.error) return { error: authz.error };
+
+  const existing = await getAnnouncementByIdStore(announcementId);
+  if (!existing) return { error: "공지를 찾을 수 없습니다." };
+  if (existing.status === "sent") return { error: "발송된 공지는 수정할 수 없습니다." };
+
+  const { title, body, audience, selectedUserIds, intent } = parseAnnouncementFields(formData);
+  if (!title || !body) return { error: "제목과 본문을 입력해 주세요." };
+  if (!audience) return { error: "발송 대상을 선택해 주세요." };
+
+  await updateAnnouncementDraft(announcementId, { title, body, audience, selectedUserIds });
+  revalidatePath("/announcements");
+  revalidatePath(`/announcements/${announcementId}`);
+
+  if (intent === "draft") {
+    redirect(`/announcements/${announcementId}`);
+  }
+
+  const sent = await sendAnnouncementPush(announcementId, authz.user!.id);
+  if (sent.error) {
+    redirect(`/announcements/${announcementId}?sendError=${encodeURIComponent(sent.error)}`);
+  }
+  redirect(`/announcements/${announcementId}?sent=1`);
+}
+
+export async function deleteAnnouncement(announcementId: string) {
+  const authz = await requireAnnouncementManager();
+  if (authz.error) return { error: authz.error };
+
+  try {
+    await deleteAnnouncementDraft(announcementId);
+  } catch {
+    return { error: "발송된 공지는 삭제할 수 없습니다." };
+  }
+  revalidatePath("/announcements");
+  redirect("/announcements");
 }

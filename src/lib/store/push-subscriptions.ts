@@ -54,6 +54,17 @@ export async function listPushSubscriptionsForUser(userId: string): Promise<Push
   return snap.docs.map(withId);
 }
 
+/** 알림을 켠(구독 토큰이 있는) 로그인 사용자 id 목록 */
+export async function listSubscribedUserIds(): Promise<string[]> {
+  const snap = await pushSubscriptionsCol.get();
+  const ids = new Set<string>();
+  for (const doc of snap.docs) {
+    const userId = doc.data().userId;
+    if (userId) ids.add(userId);
+  }
+  return [...ids];
+}
+
 export async function listPushTokensForUserIds(userIds: string[]): Promise<string[]> {
   const unique = [...new Set(userIds)].filter(Boolean);
   if (unique.length === 0) return [];

@@ -173,6 +173,31 @@ export function isPastorOrAdmin(role: Role) {
   return role === "PASTOR" || role === "ADMIN";
 }
 
+/** 공지 작성·발송: 목사·관리자 또는 2청년회 임원 8직책. 담당 가족 없는 일반 가장은 불가. */
+export function canManageAnnouncements(user: Pick<User, "role" | "officerTitle">): boolean {
+  if (isPastorOrAdmin(user.role)) return true;
+  return user.officerTitle != null && OFFICER_TITLES.includes(user.officerTitle);
+}
+
+export type AnnouncementAudience = "all" | "leaders" | "users";
+export type AnnouncementStatus = "draft" | "sent";
+
+export type Announcement = {
+  id: string;
+  title: string;
+  body: string;
+  audience: AnnouncementAudience;
+  /** audience === "users"일 때만 사용 */
+  selectedUserIds: string[];
+  status: AnnouncementStatus;
+  createdById: string;
+  createdAt: string;
+  sentAt?: string;
+  sentById?: string;
+  pushSuccessCount?: number;
+  pushFailureCount?: number;
+};
+
 /** 출석 상태. 참석과 방송은 배타적(하나만 켠다), 결석은 둘 다 꺼진 상태. */
 export type AttendanceStatus = "present" | "broadcast" | "none";
 

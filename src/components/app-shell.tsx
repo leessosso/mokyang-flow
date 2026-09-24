@@ -15,6 +15,7 @@ const navForPastor: NavItem[] = [
   { href: "/groups", label: "가족" },
   { href: "/attendance", label: "출석" },
   { href: "/surveys", label: "참여조사" },
+  { href: "/announcements", label: "공지" },
   { href: "/meetings", label: "리더 모임" },
   { href: "/reports", label: "가족 보고" },
   { href: "/admin/handover", label: "가장·임원 관리" },
@@ -25,6 +26,7 @@ const navForLeader: NavItem[] = [
   { href: "/my-group", label: "내 가족" },
   { href: "/attendance", label: "출석" },
   { href: "/surveys", label: "참여조사" },
+  { href: "/announcements", label: "공지" },
   { href: "/meetings", label: "리더 모임" },
   { href: "/reports", label: "가족 보고" },
 ];

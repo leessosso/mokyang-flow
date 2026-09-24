@@ -66,7 +66,15 @@ NEXT_PUBLIC_FIREBASE_VAPID_KEY="..."
 | 멱등 | Firestore `settings/attendanceReminder` — `lastRemindedSundayId`로 같은 주일에 중복 발송 방지 |
 | 조용히 건너뜀 | 오늘 주일 문서 없음 · 이미 알림 보냄 · 담당 가족 가장 없음 · 구독 토큰 없음 |
 
-**Phase 4 (범위 밖)**: 공지 브로드캐스트 등.
+**Phase 4 (공지 브로드캐스트)**: 목사·관리자·2청년회 임원(회장~부회계)이 **공지** 메뉴에서 제목·본문·발송 대상을 작성하고, 임시저장 또는 **지금 보내기**로 FCM 웹 푸시를 보냅니다. 예약 발송은 없습니다. 클릭 시 `/announcements/{id}`.
+
+| 항목 | 설명 |
+|------|------|
+| 권한 | `canManageAnnouncements` — PASTOR/ADMIN 또는 `officerTitle`이 8직책 중 하나 (담당 가족만 있는 일반 가장은 작성·발송 불가) |
+| 대상 | `all` 알림 켠 로그인 사용자 전원 · `leaders` 담당 가족 있는 가장(LEADER) · `users` 체크리스트로 선택 |
+| 데이터 | Firestore `announcements` — draft/sent, 발송 시 `pushSuccessCount` / `pushFailureCount` |
+| UI | `/announcements` 목록 · `/announcements/new` 작성 · `/announcements/[id]` 상세·편집(임시저장만) |
+| 멱등 | 이미 `sent`인 문서는 재발송 불가 (MVP) |
 
 ### 웹 푸시 테스트
 
@@ -97,6 +105,13 @@ curl -sS -H "Authorization: Bearer $CRON_SECRET" \
 5. 응답이 `{"status":"sent",...}` 이고 가장 기기에 「주일 출석 · …」 푸시가 오는지 확인. 같은 주일에 다시 호출하면 `already_reminded_for_sunday`로 건너뜁니다.
 
 배포 환경에서는 Vercel **Cron Jobs** 탭에서 `/api/cron/attendance-reminder` 실행 로그를 볼 수 있습니다.
+
+**공지 브로드캐스트 (Phase 4)**
+
+1. `pastor@church.demo` 또는 `officer1@church.demo`(총무)로 로그인 → **공지** → **새 공지 작성**.
+2. 제목·본문 입력, 발송 대상 **가장** 선택 → **지금 보내기**.
+3. `leader1@church.demo`로 로그인 → **대시보드** → **알림 켜기** (미설정 시).
+4. 「공지 · …」 푸시가 오고 클릭 시 `/announcements/{id}` 로 열리는지 확인. 발송 화면에 푸시 성공/실패 건수가 표시됩니다.
 
 ## 요구 사항
 
