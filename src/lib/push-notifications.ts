@@ -1,5 +1,5 @@
 import { getMessaging, type MulticastMessage } from "firebase-admin/messaging";
-import { ensureFirebaseApp } from "@/lib/firebase-admin";
+import { ensureApp } from "@/lib/firebase-admin";
 import { listUsersByRole } from "@/lib/store/users";
 import { listPushTokensForUserIds } from "@/lib/store/push-subscriptions";
 
@@ -20,7 +20,7 @@ function chunk<T>(items: T[], size: number): T[][] {
 export async function sendWebPushToTokens(tokens: string[], payload: WebPushPayload): Promise<void> {
   if (tokens.length === 0) return;
 
-  const messaging = getMessaging(ensureFirebaseApp());
+  const messaging = getMessaging(ensureApp());
   const messageBase: Omit<MulticastMessage, "tokens"> = {
     notification: {
       title: payload.title,
