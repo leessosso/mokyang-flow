@@ -54,8 +54,7 @@ export async function sendWebPushToTokens(tokens: string[], payload: WebPushPayl
   }
 }
 
-/** 가족 보고(가장 작성) 시 목사·관리자 구독자에게 알림.
- * Phase 2: 섬김(기도회 인도 등) 담당을 로그인 User에 매핑하는 필드 추가 후, 본인 담당 알림에 재사용. */
+/** 가족 보고(가장 작성) 시 목사·관리자 구독자에게 알림. */
 export async function notifyPastorsAndAdminsOfFamilyReport(options: {
   groupId: string;
   groupName: string;
@@ -78,5 +77,32 @@ export async function notifyPastorsAndAdminsOfFamilyReport(options: {
     title: `가족 보고 · ${options.groupName}`,
     body: `${options.leaderName}: ${body}`,
     url,
+  });
+}
+
+/** 섬김 담당이 모임 등에 배정되면 해당 로그인 사용자(들)에게 푸시. */
+export async function notifyUsersOfServingDutyAssignment(options: {
+  userIds: string[];
+  dutyLabel: string;
+  meetingTitle: string;
+  meetingDateIso: string;
+  meetingId: string;
+}): Promise<void> {
+  const uniqueUserIds = [...new Set(options.userIds)].filter(Boolean);
+  if (uniqueUserIds.length === 0) return;
+
+  const tokens = await listPushTokensForUserIds(uniqueUserIds);
+  if (tokens.length === 0) return;
+
+  const dateLabel = new Date(options.meetingDateIso).toLocaleDateString("ko-KR", {
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  });
+
+  await sendWebPushToTokens(tokens, {
+    title: `섬김 담당 · ${options.dutyLabel}`,
+    body: `${options.meetingTitle} (${dateLabel})`,
+    url: `/meetings/${options.meetingId}`,
   });
 }

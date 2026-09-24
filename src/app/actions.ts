@@ -14,13 +14,17 @@ import {
   handoverGroupLeader,
   listAllMembers,
 } from "@/lib/store/groups";
-import { getUserById, updateOfficerTitle as updateOfficerTitleStore } from "@/lib/store/users";
+import { getUserById, updateOfficerTitle as updateOfficerTitleStore, updateServingDutyKeys as updateServingDutyKeysStore } from "@/lib/store/users";
 import { getGroupById } from "@/lib/store/groups";
-import { notifyPastorsAndAdminsOfFamilyReport } from "@/lib/push-notifications";
+import {
+  notifyPastorsAndAdminsOfFamilyReport,
+  notifyUsersOfServingDutyAssignment,
+} from "@/lib/push-notifications";
 import {
   addMeetingAsset,
   createMeeting,
   getMeetingById,
+  setMeetingDutyUser,
   setMeetingPrayerLeader,
   updateMeetingNotes as updateMeetingNotesStore,
 } from "@/lib/store/meetings";
@@ -48,7 +52,8 @@ import { parseNamesFromFile } from "@/lib/qr-import";
 import { uploadMeetingFile } from "@/lib/storage";
 import { getCurrentTerm, setCurrentTerm } from "@/lib/store/settings";
 import { nextTerm } from "@/lib/term";
-import type { AttendanceStatus, MeetingAssetKind, OfficerTitle, SurveyQuestion, SurveyQuestionType } from "@/lib/types";
+import type { AttendanceStatus, MeetingAssetKind, OfficerTitle, ServingDutyKey, SurveyQuestion, SurveyQuestionType } from "@/lib/types";
+import { SERVING_DUTIES, SERVING_DUTY_BY_KEY } from "@/lib/types";
 
 const MAX_SURVEY_QUESTIONS = 6;
 
@@ -141,6 +146,64 @@ export async function updateOfficerTitle(userId: string, officerTitle: OfficerTi
   return { ok: true };
 }
 
+/** 목사·관리자가 로그인 사용자별 섬김 슬롯(본인 담당 후보)을 지정한다. */
+export async function updateUserServingDuties(userId: string, formData: FormData) {
+  const user = await sessionUser();
+  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+
+  const target = await getUserById(userId);
+  if (!target) return { error: "사용자를 찾을 수 없습니다." };
+
+  const keys = SERVING_DUTIES.map((d) => d.key).filter(
+    (key) => formData.get(`duty_${key}`) === "on",
+  ) as ServingDutyKey[];
+
+  await updateServingDutyKeysStore(userId, keys);
+  revalidatePath("/admin/handover");
+  revalidatePath("/meetings");
+  return { ok: true };
+}
+
+async function pushServingDutyAssignmentIfChanged(
+  meetingId: string,
+  dutyKey: ServingDutyKey,
+  previousUserId: string | null,
+  newUserId: string | null,
+) {
+  if (!newUserId || newUserId === previousUserId) return;
+  const meeting = await getMeetingById(meetingId);
+  if (!meeting) return;
+  const dutyLabel = SERVING_DUTY_BY_KEY[dutyKey].label;
+  try {
+    await notifyUsersOfServingDutyAssignment({
+      userIds: [newUserId],
+      dutyLabel,
+      meetingTitle: meeting.title,
+      meetingDateIso: meeting.date,
+      meetingId,
+    });
+  } catch (err) {
+    console.error("[push] serving duty notify failed", err);
+  }
+}
+
+export async function setMeetingServingDuty(
+  meetingId: string,
+  dutyKey: ServingDutyKey,
+  userId: string,
+) {
+  const user = await sessionUser();
+  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  if (!SERVING_DUTY_BY_KEY[dutyKey]) return { error: "잘못된 섬김 항목입니다." };
+
+  const normalized = userId.trim() || null;
+  const { previousUserId } = await setMeetingDutyUser(meetingId, dutyKey, normalized);
+  await pushServingDutyAssignmentIfChanged(meetingId, dutyKey, previousUserId, normalized);
+
+  revalidatePath(`/meetings/${meetingId}`);
+  return { ok: true };
+}
+
 export async function createLeaderMeeting(data: {
   title: string;
   date: string;
@@ -169,7 +232,14 @@ export async function updateMeetingNotes(meetingId: string, notes: string) {
 export async function setPrayerLeader(meetingId: string, leaderId: string) {
   const user = await sessionUser();
   if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
-  await setMeetingPrayerLeader(meetingId, leaderId || null);
+  const normalized = leaderId.trim() || null;
+  const { previousUserId } = await setMeetingPrayerLeader(meetingId, normalized);
+  await pushServingDutyAssignmentIfChanged(
+    meetingId,
+    "prayer_meeting_lead",
+    previousUserId,
+    normalized,
+  );
   revalidatePath(`/meetings/${meetingId}`);
   return { ok: true };
 }

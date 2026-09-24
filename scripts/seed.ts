@@ -38,6 +38,7 @@ async function main() {
     name: string;
     role: "PASTOR" | "LEADER" | "ADMIN";
     officerTitle?: string | null;
+    servingDutyKeys?: string[];
   }) {
     const ref = getDb().collection("users").doc();
     await ref.set({
@@ -46,6 +47,7 @@ async function main() {
       name: data.name,
       role: data.role,
       officerTitle: data.officerTitle ?? null,
+      ...(data.servingDutyKeys?.length ? { servingDutyKeys: data.servingDutyKeys } : {}),
       createdAt: now,
     });
     return ref.id;
@@ -58,6 +60,7 @@ async function main() {
     name: "박가장",
     role: "LEADER",
     officerTitle: "회장",
+    servingDutyKeys: ["prayer_meeting_lead"],
   });
   const leader3Id = await addUser({ email: "leader3@church.demo", name: "최신가장", role: "LEADER" });
   const officerOnlyId = await addUser({
@@ -65,6 +68,7 @@ async function main() {
     name: "정총무",
     role: "LEADER",
     officerTitle: "총무",
+    servingDutyKeys: ["sorting_hat_facilitator", "worship_usher"],
   });
 
   await getDb().collection("settings").doc("app").set({ year: 2026, half: "H1" });
@@ -154,6 +158,7 @@ async function main() {
     date: "2026-03-05T19:30:00.000Z",
     notes: "교안 나눔 및 이번 달 가족 사역 나눔",
     prayerLeaderId: leader2Id,
+    dutyUserIds: { prayer_meeting_lead: leader2Id },
     createdAt: now,
   });
 

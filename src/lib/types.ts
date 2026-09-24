@@ -17,6 +17,21 @@ export const OFFICER_TITLES = [
 
 export type OfficerTitle = (typeof OFFICER_TITLES)[number];
 
+/** 로그인 사용자에게 매핑하는 주간 섬김 슬롯 (Phase 2). 모임·예배 배정 시 「본인 담당」 푸시 대상. */
+export const SERVING_DUTIES = [
+  { key: "prayer_meeting_lead", label: "리더 모임 전 기도회 인도" },
+  { key: "worship_usher", label: "주일 예배 안내·좌석" },
+  { key: "sorting_hat_facilitator", label: "현장 배정(배정 모자) 진행" },
+] as const;
+
+export type ServingDutyKey = (typeof SERVING_DUTIES)[number]["key"];
+
+export const SERVING_DUTY_BY_KEY: Record<ServingDutyKey, (typeof SERVING_DUTIES)[number]> =
+  Object.fromEntries(SERVING_DUTIES.map((d) => [d.key, d])) as Record<
+    ServingDutyKey,
+    (typeof SERVING_DUTIES)[number]
+  >;
+
 export type User = {
   id: string;
   email: string;
@@ -24,6 +39,8 @@ export type User = {
   name: string;
   role: Role;
   officerTitle: OfficerTitle | null;
+  /** 이 계정이 맡을 수 있는 섬김 슬롯. 목사가 「가장·임원 관리」에서 지정. */
+  servingDutyKeys?: ServingDutyKey[];
   createdAt: string;
 };
 
@@ -77,8 +94,20 @@ export type LeaderMeeting = {
   date: string;
   notes: string | null;
   prayerLeaderId: string | null;
+  /** 이번 모임 섬김 담당 (userId). `prayer_meeting_lead`는 `prayerLeaderId`와 동기화. */
+  dutyUserIds?: Partial<Record<ServingDutyKey, string | null>>;
   createdAt: string;
 };
+
+export function meetingDutyUserId(
+  meeting: LeaderMeeting,
+  dutyKey: ServingDutyKey,
+): string | null {
+  if (dutyKey === "prayer_meeting_lead") {
+    return meeting.prayerLeaderId ?? meeting.dutyUserIds?.prayer_meeting_lead ?? null;
+  }
+  return meeting.dutyUserIds?.[dutyKey] ?? null;
+}
 
 export type SharingPlan = {
   id: string;
