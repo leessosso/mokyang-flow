@@ -1,7 +1,6 @@
 import { signOut } from "@/auth";
 import type { OfficerTitle, Role } from "@/lib/types";
 import { canManageApp } from "@/lib/types";
-import { DeploySmokeBadge } from "@/components/deploy-smoke-badge";
 import { FitText } from "@/components/fit-text";
 import { AppMain } from "@/components/app-main";
 import { AppNav, type NavItem } from "@/components/app-nav";
@@ -68,7 +67,6 @@ export function AppShell({
       <aside className="hidden lg:flex lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-stone-200 lg:bg-white">
         <div className="border-b border-stone-100 px-5 py-5">
           <h1 className="text-lg font-semibold text-stone-900">2청년회 운영</h1>
-          <DeploySmokeBadge className="mt-2" />
         </div>
         <AppNav items={nav} variant="desktop" />
         <div className="mt-auto border-t border-stone-100 px-3 py-4">
@@ -83,7 +81,6 @@ export function AppShell({
           <div className="flex items-center justify-between gap-3 px-4 py-3">
             <div className="min-w-0 flex-1">
               <FitText text="2청년회 운영" />
-              <DeploySmokeBadge className="mt-1" />
             </div>
             <div className="flex min-w-0 max-w-[46%] items-center gap-2">
               <div className="min-w-0 text-right text-sm">
