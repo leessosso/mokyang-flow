@@ -12,7 +12,49 @@
 | 교안, 교안 해설지, 악보 파일 | **Firebase Storage** (`src/lib/storage.ts`) |
 | 배정 모자 (조 배정·자리 뽑기) 실시간 상태 | 기존 **Realtime Database** (`public/sorting-hat/`, 변경 없음) |
 
-클라이언트는 Firestore/Storage를 직접 읽지 않습니다. 서버 액션(`src/app/actions.ts`)과 서버 컴포넌트만 `firebase-admin`으로 접근하고, 권한은 NextAuth 세션으로 검사합니다.
+클라이언트는 Firestore/Storage를 직접 읽지 않습니다. 서버 액션(`src/app/actions.ts`)과 서버 컴포넌트만 `firebase-admin`으로 접근하고, 권한은 NextAuth 세션으로 검사합니다. **웹 푸시(FCM)만** 브라우저에서 Firebase Messaging SDK와 서비스 워커를 사용하며, 구독 토큰은 서버가 Firestore `pushSubscriptions`에 저장합니다.
+
+## 웹 푸시 (PWA + FCM) MVP
+
+로그인 사용자(목사·관리자·가장)만 브라우저 푸시를 받을 수 있습니다. 가족원(계정 없음)은 대상이 아니며, 카카오톡 보고와 병행합니다.
+
+| 항목 | 설명 |
+|------|------|
+| PWA | `public/manifest.webmanifest`, `public/icons/*`, 대시보드에서 알림 켜기 |
+| 서비스 워커 | `/firebase-messaging-sw.js` (환경 변수 기반 동적 스크립트) |
+| 구독 저장 | Firestore `pushSubscriptions` — `{ userId, token, createdAt, lastSeenAt, userAgent? }` |
+| 발송 | `firebase-admin` `sendEachForMulticast` (`src/lib/push-notifications.ts`) |
+| 트리거 | 가장(LEADER)이 가족 보고 메시지를 보내면 구독 중인 목사·관리자에게 푸시 → `/reports/{groupId}` |
+
+**Firebase 콘솔 (배포 전)**
+
+1. 프로젝트 설정 → 일반 → 내 앱 → 웹 앱이 없으면 추가 (또는 `public/sorting-hat/firebase-config.js`와 **동일 프로젝트** `sorting-hat-9d69e`면 해당 웹 앱 설정 재사용).
+2. **Cloud Messaging** → Web Push certificates → Key pair 생성 → `NEXT_PUBLIC_FIREBASE_VAPID_KEY`에 등록.
+3. 서버용 서비스 계정(`FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY`)은 기존과 동일 프로젝트여야 FCM 발송이 됩니다. `FIREBASE_PROJECT_ID`와 `NEXT_PUBLIC_FIREBASE_PROJECT_ID`가 같아야 합니다.
+
+**Vercel 환경 변수 (추가)**
+
+```
+NEXT_PUBLIC_FIREBASE_API_KEY="..."
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="....firebaseapp.com"
+NEXT_PUBLIC_FIREBASE_PROJECT_ID="..."
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="..."
+NEXT_PUBLIC_FIREBASE_APP_ID="..."
+NEXT_PUBLIC_FIREBASE_VAPID_KEY="..."
+```
+
+`sorting-hat-9d69e`를 그대로 쓰는 경우 예시는 `public/sorting-hat/firebase-config.js`의 `apiKey`, `authDomain`, `projectId`, `messagingSenderId`, `appId`와 동일하게 맞춥니다 (서비스 계정 키는 git에 넣지 않음).
+
+**iOS**: Safari는 **홈 화면에 추가한 PWA**에서만 웹 푸시가 동작합니다. 일반 탭 브라우저만으로는 알림을 받을 수 없습니다.
+
+**Phase 2 (이 PR 범위 밖)**: 기도회 인도·섬김 담당을 로그인 User에 매핑하는 필드를 추가한 뒤, 「본인 담당」 알림에 `pushSubscriptions` 발송 헬퍼를 재사용합니다.
+
+### 웹 푸시 테스트
+
+1. Vercel(또는 로컬)에 위 `NEXT_PUBLIC_*` + VAPID + 기존 Firebase Admin env 설정.
+2. `pastor@church.demo` 로 로그인 → **대시보드** → **알림 켜기** → 브라우저 권한 허용.
+3. `leader1@church.demo` 로 로그인 → **가족 보고** → 1가족 방에 메시지 전송.
+4. 목사 계정 기기/브라우저에 「가족 보고 · …」 푸시가 오고, 클릭 시 `/reports/{groupId}` 로 이동하는지 확인.
 
 ## 요구 사항
 
@@ -163,6 +205,7 @@ npm run dev
 - Next.js (App Router), TypeScript, Tailwind CSS
 - NextAuth (이메일·비밀번호, Firestore 유저 검증)
 - Firebase Admin SDK (Firestore + Storage)
+- Firebase Cloud Messaging (웹 푸시, PWA 서비스 워커)
 
 ## 배포 (Vercel)
 

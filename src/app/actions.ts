@@ -15,6 +15,8 @@ import {
   listAllMembers,
 } from "@/lib/store/groups";
 import { getUserById, updateOfficerTitle as updateOfficerTitleStore } from "@/lib/store/users";
+import { getGroupById } from "@/lib/store/groups";
+import { notifyPastorsAndAdminsOfFamilyReport } from "@/lib/push-notifications";
 import {
   addMeetingAsset,
   createMeeting,
@@ -79,6 +81,22 @@ export async function sendFamilyReportMessage(
     body: trimmed,
     aboutMemberId: aboutMemberId || null,
   });
+
+  if (user.role === "LEADER") {
+    const group = await getGroupById(groupId);
+    if (group) {
+      try {
+        await notifyPastorsAndAdminsOfFamilyReport({
+          groupId,
+          groupName: group.name,
+          leaderName: user.name ?? "가장",
+          preview: trimmed,
+        });
+      } catch (err) {
+        console.error("[push] family report notify failed", err);
+      }
+    }
+  }
 
   revalidatePath(`/reports/${groupId}`);
   revalidatePath("/reports");

@@ -39,7 +39,7 @@ let storageBucket: ReturnType<ReturnType<typeof getStorage>["bucket"]> | undefin
  * 초기화는 첫 사용 시점에만 수행합니다. `next build`의 페이지 데이터 수집 단계에서는
  * Firebase env가 없어도 import만으로 실패하지 않습니다.
  */
-function ensureApp(): App {
+export function ensureApp(): App {
   if (app) return app;
   if (getApps().length) {
     app = getApps()[0];
