@@ -21,10 +21,12 @@ messaging.onBackgroundMessage((payload) => {
   const title = payload.notification?.title || payload.data?.title || '2청년회 리더 운영';
   const body = payload.notification?.body || payload.data?.body || '';
   const url = payload.fcmOptions?.link || payload.data?.url || '/dashboard';
+  const tag = payload.notification?.tag || payload.data?.tag;
   self.registration.showNotification(title, {
     body,
     icon: '/icons/icon-192.png',
     data: { url },
+    ...(tag ? { tag } : {}),
   });
 });
 

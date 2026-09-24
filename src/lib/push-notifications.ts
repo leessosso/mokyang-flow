@@ -7,6 +7,8 @@ export type WebPushPayload = {
   title: string;
   body: string;
   url: string;
+  /** 동일 기기·이벤트에서 알림이 겹치지 않도록 하는 Web Push notification tag */
+  tag?: string;
 };
 
 function chunk<T>(items: T[], size: number): T[][] {
@@ -35,6 +37,7 @@ export async function sendWebPushToTokens(
     },
     data: {
       url: payload.url,
+      ...(payload.tag ? { tag: payload.tag } : {}),
     },
     webpush: {
       fcmOptions: {
@@ -44,6 +47,7 @@ export async function sendWebPushToTokens(
         title: payload.title,
         body: payload.body,
         icon: "/icons/icon-192.png",
+        ...(payload.tag ? { tag: payload.tag } : {}),
       },
     },
   };
@@ -86,6 +90,7 @@ export async function notifyUsersOfAnnouncement(options: {
     title: `공지 · ${options.title}`,
     body,
     url: `/announcements/${options.announcementId}`,
+    tag: `announcement-${options.announcementId}`,
   });
 }
 
@@ -112,12 +117,14 @@ export async function notifyPastorsAndAdminsOfFamilyReport(options: {
     title: `가족 보고 · ${options.groupName}`,
     body: `${options.leaderName}: ${body}`,
     url,
+    tag: `report-${options.groupId}`,
   });
 }
 
 /** 섬김 담당이 모임 등에 배정되면 해당 로그인 사용자(들)에게 푸시. */
 export async function notifyUsersOfServingDutyAssignment(options: {
   userIds: string[];
+  dutyKey: string;
   dutyLabel: string;
   meetingTitle: string;
   meetingDateIso: string;
@@ -139,6 +146,7 @@ export async function notifyUsersOfServingDutyAssignment(options: {
     title: `섬김 담당 · ${options.dutyLabel}`,
     body: `${options.meetingTitle} (${dateLabel})`,
     url: `/meetings/${options.meetingId}`,
+    tag: `duty-${options.meetingId}-${options.dutyKey}`,
   });
 }
 
@@ -166,5 +174,6 @@ export async function notifyLeadersOfAttendanceReminder(options: {
     title: `주일 출석 · ${options.sundayTitle}`,
     body: `${dateLabel} — 가족원 1-3부·4부·가족모임 출석을 입력해 주세요.`,
     url: `/attendance/${options.sundayId}`,
+    tag: `attendance-${options.sundayId}`,
   });
 }
