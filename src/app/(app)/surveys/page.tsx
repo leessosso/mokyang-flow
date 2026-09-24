@@ -1,16 +1,14 @@
 import Link from "next/link";
-import { auth } from "@/auth";
 import { createEventSurvey } from "@/app/actions";
 import { Badge, Button, Card, CardHeader, Input, Label, Textarea } from "@/components/ui";
-import { isPastorOrAdmin } from "@/lib/auth";
+import { currentUserCanManageApp } from "@/lib/auth";
 import { formatDateKo } from "@/lib/format";
 import { listEventSurveys } from "@/lib/store/surveys";
 
 const QUESTION_ROWS = [1, 2, 3, 4, 5, 6];
 
 export default async function SurveysPage() {
-  const session = await auth();
-  const canAdmin = isPastorOrAdmin(session!.user.role);
+  const canAdmin = await currentUserCanManageApp();
 
   const surveys = await listEventSurveys();
 

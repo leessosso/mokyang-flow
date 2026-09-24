@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { saveAttendanceMarks } from "@/app/actions";
 import { Button, Card, CardHeader } from "@/components/ui";
-import { isPastorOrAdmin, leaderCanAccessGroup } from "@/lib/auth";
+import { currentUserCanManageApp, leaderCanAccessGroup } from "@/lib/auth";
 import { formatDateKo } from "@/lib/format";
 import {
   getAttendanceSundayById,
@@ -28,7 +28,7 @@ export default async function AttendanceGroupPage({
   const { sundayId, groupId } = await params;
   const session = await auth();
   const user = session!.user;
-  const canEditQr = isPastorOrAdmin(user.role);
+  const canEditQr = await currentUserCanManageApp();
 
   if (!canEditQr) {
     const ok = await leaderCanAccessGroup(user.id, groupId);

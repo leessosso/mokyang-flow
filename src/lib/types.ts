@@ -19,9 +19,7 @@ export type OfficerTitle = (typeof OFFICER_TITLES)[number];
 
 /** 로그인 사용자에게 매핑하는 주간 섬김 슬롯 (Phase 2). 모임·예배 배정 시 「본인 담당」 푸시 대상. */
 export const SERVING_DUTIES = [
-  { key: "prayer_meeting_lead", label: "리더 모임 전 기도회 인도" },
-  { key: "worship_usher", label: "주일 예배 안내·좌석" },
-  { key: "sorting_hat_facilitator", label: "현장 배정(배정 모자) 진행" },
+  { key: "prayer_meeting_lead", label: "기도회 인도" },
 ] as const;
 
 export type ServingDutyKey = (typeof SERVING_DUTIES)[number]["key"];
@@ -109,26 +107,6 @@ export function meetingDutyUserId(
   return meeting.dutyUserIds?.[dutyKey] ?? null;
 }
 
-export type SharingPlan = {
-  id: string;
-  meetingId: string | null;
-  serviceDate: string;
-  useHomeGroups: boolean;
-};
-
-export type SharingGroup = {
-  id: string;
-  planId: string;
-  name: string;
-  homeGroupId: string | null;
-};
-
-export type SharingAssignment = {
-  id: string;
-  sharingGroupId: string;
-  memberId: string;
-};
-
 export type WorshipService = {
   id: string;
   date: string;
@@ -173,10 +151,15 @@ export function isPastorOrAdmin(role: Role) {
   return role === "PASTOR" || role === "ADMIN";
 }
 
-/** 공지 작성·발송: 목사·관리자 또는 2청년회 임원 8직책. 담당 가족 없는 일반 가장은 불가. */
-export function canManageAnnouncements(user: Pick<User, "role" | "officerTitle">): boolean {
+/** 앱 운영: 목사·관리자, 또는 2청년회 임원 8직책. 임원이 아닌 가장은 불가. */
+export function canManageApp(user: Pick<User, "role" | "officerTitle">): boolean {
   if (isPastorOrAdmin(user.role)) return true;
   return user.officerTitle != null && OFFICER_TITLES.includes(user.officerTitle);
+}
+
+/** 공지 작성·발송은 앱 운영과 같은 권한이다. */
+export function canManageAnnouncements(user: Pick<User, "role" | "officerTitle">): boolean {
+  return canManageApp(user);
 }
 
 export type AnnouncementAudience = "all" | "leaders" | "users";

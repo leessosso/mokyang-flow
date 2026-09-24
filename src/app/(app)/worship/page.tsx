@@ -1,14 +1,12 @@
 import Link from "next/link";
-import { auth } from "@/auth";
 import { createWorshipService } from "@/app/actions";
 import { Button, Card, CardHeader, Input, Label } from "@/components/ui";
-import { isPastorOrAdmin } from "@/lib/auth";
+import { currentUserCanManageApp } from "@/lib/auth";
 import { formatDateKo } from "@/lib/format";
 import { listAssignmentsByService, listWorshipServices } from "@/lib/store/worship";
 
 export default async function WorshipListPage() {
-  const session = await auth();
-  const canAdmin = isPastorOrAdmin(session!.user.role);
+  const canAdmin = await currentUserCanManageApp();
 
   const services = await listWorshipServices();
   const assignmentCounts = await Promise.all(

@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { closeEventSurvey, reopenEventSurvey } from "@/app/actions";
 import { Badge, Button, Card, CardHeader } from "@/components/ui";
-import { isPastorOrAdmin } from "@/lib/auth";
+import { currentUserCanManageApp } from "@/lib/auth";
 import { formatDateKo } from "@/lib/format";
 import { getGroupByCurrentLeader, listGroups, listMembersByGroup } from "@/lib/store/groups";
 import {
@@ -25,7 +25,7 @@ export default async function SurveyDetailPage({
   const survey = await getEventSurveyById(id);
   if (!survey) notFound();
 
-  if (!isPastorOrAdmin(user.role)) {
+  if (!(await currentUserCanManageApp())) {
     const myGroup = await getGroupByCurrentLeader(user.id);
     if (!myGroup) {
       return (

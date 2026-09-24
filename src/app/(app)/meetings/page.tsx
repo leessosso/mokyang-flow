@@ -1,20 +1,15 @@
 import Link from "next/link";
-import { auth } from "@/auth";
 import { createLeaderMeeting } from "@/app/actions";
 import { Button, Card, CardHeader, Input, Label, Textarea } from "@/components/ui";
-import { isPastorOrAdmin } from "@/lib/auth";
+import { currentUserCanManageApp } from "@/lib/auth";
 import { formatDateTimeKo } from "@/lib/format";
 import { listMeetings } from "@/lib/store/meetings";
-import { getPlanByMeeting } from "@/lib/store/sharing";
 import type { LeaderMeeting } from "@/lib/types";
 
 export default async function MeetingsPage() {
-  const session = await auth();
-  const canAdmin = isPastorOrAdmin(session!.user.role);
+  const canAdmin = await currentUserCanManageApp();
 
   const meetings = await listMeetings();
-  const plans = await Promise.all(meetings.map((m) => getPlanByMeeting(m.id)));
-  const hasPlan = new Map(meetings.map((m, i) => [m.id, !!plans[i]]));
 
   const now = new Date();
   const upcoming = meetings.filter((m) => new Date(m.date) >= now);
@@ -25,7 +20,7 @@ export default async function MeetingsPage() {
       <div>
         <h2 className="text-xl font-semibold">리더 모임</h2>
         <p className="text-sm text-stone-600">
-          가장·임원·목사가 매주 모이는 자리입니다. 교안·해설지, 기도회 악보, 배정 모자를 여기서 준비합니다.
+          매주 기도회, 말씀 교안 나눔, 교안 해설, 그 주 광고 순으로 진행합니다. 나눔에는 가장, 임원, 게스트(부가장·사역팀장)가 함께합니다.
         </p>
       </div>
 
@@ -59,8 +54,8 @@ export default async function MeetingsPage() {
                 <Input name="date" type="datetime-local" required />
               </div>
               <div>
-                <Label>메모</Label>
-                <Textarea name="notes" placeholder="안건, 기도 제목 등" />
+                <Label>그 주 광고</Label>
+                <Textarea name="notes" placeholder="모임에서 전할 2청년회 광고" />
               </div>
               <Button type="submit">등록</Button>
             </form>
@@ -68,8 +63,8 @@ export default async function MeetingsPage() {
         )}
 
         <div className="grid gap-6 xl:grid-cols-2">
-          <Section title="예정된 모임" items={upcoming} hasPlan={hasPlan} />
-          <Section title="지난 모임" items={past} hasPlan={hasPlan} />
+          <Section title="예정된 모임" items={upcoming} />
+          <Section title="지난 모임" items={past} />
         </div>
       </div>
     </div>
@@ -79,11 +74,9 @@ export default async function MeetingsPage() {
 function Section({
   title,
   items,
-  hasPlan,
 }: {
   title: string;
   items: LeaderMeeting[];
-  hasPlan: Map<string, boolean>;
 }) {
   return (
     <Card>
@@ -99,7 +92,7 @@ function Section({
                 <p className="text-sm text-stone-500">{formatDateTimeKo(m.date)}</p>
               </div>
               <Link href={`/meetings/${m.id}`} className="text-sm font-medium text-stone-800 underline">
-                {hasPlan.get(m.id) ? "자료·조편성 보기" : "상세 보기"}
+                상세 보기
               </Link>
             </li>
           ))}

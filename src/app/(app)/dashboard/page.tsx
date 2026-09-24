@@ -1,18 +1,17 @@
 import Link from "next/link";
 import { auth } from "@/auth";
-import { Badge, Card, CardHeader } from "@/components/ui";
-import { isPastorOrAdmin } from "@/lib/auth";
+import { Card, CardHeader } from "@/components/ui";
+import { getCurrentUser, isPastorOrAdmin } from "@/lib/auth";
 import { formatDateTimeKo, roleLabel } from "@/lib/format";
 import { getGroupByCurrentLeader, listGroups, listMembersByGroup } from "@/lib/store/groups";
 import { listMeetings } from "@/lib/store/meetings";
-import { getPlanByMeeting } from "@/lib/store/sharing";
 import { countThreadsWithMessages } from "@/lib/store/reports";
 import { getLatestAttendanceSunday, listMarksBySunday } from "@/lib/store/attendance";
 import {
   SORTING_HAT_ADMIN_PATH,
   SORTING_HAT_USER_PATH,
-  canManageSortingHat,
 } from "@/lib/sorting-hat";
+import { canManageApp } from "@/lib/types";
 import { PushNotificationSettings } from "@/components/push-notification-settings";
 import { isWebPushConfigured } from "@/lib/firebase-client";
 import { listPushSubscriptionsForUser } from "@/lib/store/push-subscriptions";
@@ -20,9 +19,10 @@ import { listPushSubscriptionsForUser } from "@/lib/store/push-subscriptions";
 export default async function DashboardPage() {
   const session = await auth();
   const user = session!.user;
+  const actor = await getCurrentUser();
+  const manages = actor ? canManageApp(actor) : false;
 
   const meetings = (await listMeetings()).slice(0, 3);
-  const meetingPlans = await Promise.all(meetings.map((m) => getPlanByMeeting(m.id)));
 
   let myGroup = null;
   let myMemberCount = 0;
@@ -31,17 +31,19 @@ export default async function DashboardPage() {
     if (myGroup) myMemberCount = (await listMembersByGroup(myGroup.id)).length;
   }
 
-  const attendanceGroups = isPastorOrAdmin(user.role)
+  const attendanceGroups = manages
     ? await listGroups()
     : myGroup
       ? [myGroup]
       : [];
 
-  const reportCount = isPastorOrAdmin(user.role)
-    ? await countThreadsWithMessages(attendanceGroups.map((g) => g.id))
+  const reportGroups = isPastorOrAdmin(user.role)
+    ? attendanceGroups
     : myGroup
-      ? await countThreadsWithMessages([myGroup.id])
-      : 0;
+      ? [myGroup]
+      : [];
+
+  const reportCount = await countThreadsWithMessages(reportGroups.map((g) => g.id));
 
   const latestSunday = await getLatestAttendanceSunday();
   let missingAttendanceCount = 0;
@@ -92,24 +94,17 @@ export default async function DashboardPage() {
         )}
 
         <Card className={myGroup ? "lg:col-span-1 xl:col-span-1" : "lg:col-span-1"}>
-          <CardHeader title="최근 리더 모임" subtitle="교안·기도회·배정 모자 연결" />
+          <CardHeader title="최근 리더 모임" subtitle="기도회 · 교안 나눔 · 해설 · 광고" />
           <ul className="divide-y divide-stone-100">
-            {meetings.map((m, i) => (
+            {meetings.map((m) => (
               <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
                 <div>
                   <p className="font-medium text-stone-900">{m.title}</p>
                   <p className="text-sm text-stone-500">{formatDateTimeKo(m.date)}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  {meetingPlans[i] ? (
-                    <Badge tone="green">조편성 완료</Badge>
-                  ) : (
-                    <Badge>조편성 없음</Badge>
-                  )}
-                  <Link href={`/meetings/${m.id}`} className="text-sm text-stone-700 underline">
-                    보기
-                  </Link>
-                </div>
+                <Link href={`/meetings/${m.id}`} className="text-sm text-stone-700 underline">
+                  보기
+                </Link>
               </li>
             ))}
             {meetings.length === 0 && (
@@ -124,7 +119,7 @@ export default async function DashboardPage() {
             <Link href={SORTING_HAT_USER_PATH} className="text-sm font-medium text-stone-800 underline">
               조 배정·자리 뽑기
             </Link>
-            {canManageSortingHat(user.role) && (
+            {manages && (
               <Link href={SORTING_HAT_ADMIN_PATH} className="text-sm font-medium text-stone-800 underline">
                 배정 관리
               </Link>

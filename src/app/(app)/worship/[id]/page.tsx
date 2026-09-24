@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { assignGroupSeating } from "@/app/actions";
 import { Button, Card, CardHeader } from "@/components/ui";
-import { isPastorOrAdmin } from "@/lib/auth";
+import { currentUserCanManageApp } from "@/lib/auth";
 import { formatDateKo } from "@/lib/format";
 import { listGroups } from "@/lib/store/groups";
 import {
@@ -19,8 +19,7 @@ export default async function WorshipDetailPage({
 }) {
   const { id } = await params;
   const session = await auth();
-  const canEdit =
-    isPastorOrAdmin(session!.user.role) || session!.user.role === "LEADER";
+  const canEdit = (await currentUserCanManageApp()) || session!.user.role === "LEADER";
 
   const service = await getWorshipServiceById(id);
   if (!service) notFound();

@@ -7,12 +7,14 @@ import {
   isPastorOrAdmin,
   leaderCanAccessGroup,
 } from "@/lib/auth";
+import { canManageAnnouncements, canManageApp, SERVING_DUTIES, SERVING_DUTY_BY_KEY } from "@/lib/types";
 import {
   assignMemberToGroup as assignMemberToGroupStore,
   createGroup as createGroupStore,
   createMember as createMemberStore,
   handoverGroupLeader,
   listAllMembers,
+  listCurrentLeaderUserIds,
 } from "@/lib/store/groups";
 import { getUserById, updateOfficerTitle as updateOfficerTitleStore, updateServingDutyKeys as updateServingDutyKeysStore } from "@/lib/store/users";
 import { getGroupById } from "@/lib/store/groups";
@@ -38,11 +40,6 @@ import {
   updateMeetingNotes as updateMeetingNotesStore,
 } from "@/lib/store/meetings";
 import { sendFamilyMessage } from "@/lib/store/reports";
-import {
-  autoSuggestSharingGroups,
-  getPlanById,
-  moveMemberSharing as moveMemberSharingStore,
-} from "@/lib/store/sharing";
 import { assignGroupSeating as assignGroupSeatingStore, createWorshipService as createWorshipServiceStore } from "@/lib/store/worship";
 import {
   createAttendanceSunday as createAttendanceSundayStore,
@@ -70,8 +67,6 @@ import type {
   SurveyQuestion,
   SurveyQuestionType,
 } from "@/lib/types";
-import { canManageAnnouncements } from "@/lib/types";
-import { SERVING_DUTIES, SERVING_DUTY_BY_KEY } from "@/lib/types";
 
 const MAX_SURVEY_QUESTIONS = 6;
 
@@ -79,6 +74,13 @@ async function sessionUser() {
   const session = await auth();
   if (!session?.user?.id) throw new Error("UNAUTHORIZED");
   return session.user;
+}
+
+async function requireAppManager() {
+  const session = await sessionUser();
+  const full = await getUserById(session.id);
+  if (!full || !canManageApp(full)) return null;
+  return full;
 }
 
 async function requireAnnouncementManager() {
@@ -188,8 +190,7 @@ export async function sendFamilyReportMessage(
 }
 
 export async function handoverLeader(groupId: string, newLeaderId: string) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
 
   const newLeader = await getUserById(newLeaderId);
   if (!newLeader || newLeader.role !== "LEADER") {
@@ -204,8 +205,7 @@ export async function handoverLeader(groupId: string, newLeaderId: string) {
 }
 
 export async function startNextFamilyTerm() {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
   const current = await getCurrentTerm();
   const next = nextTerm(current);
   await setCurrentTerm(next);
@@ -218,8 +218,7 @@ export async function startNextFamilyTerm() {
 }
 
 export async function updateOfficerTitle(userId: string, officerTitle: OfficerTitle | "") {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
   await updateOfficerTitleStore(userId, officerTitle || null);
   revalidatePath("/admin/handover");
   return { ok: true };
@@ -227,8 +226,7 @@ export async function updateOfficerTitle(userId: string, officerTitle: OfficerTi
 
 /** 목사·관리자가 로그인 사용자별 섬김 슬롯(본인 담당 후보)을 지정한다. */
 export async function updateUserServingDuties(userId: string, formData: FormData) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
 
   const target = await getUserById(userId);
   if (!target) return { error: "사용자를 찾을 수 없습니다." };
@@ -272,11 +270,16 @@ export async function setMeetingServingDuty(
   dutyKey: ServingDutyKey,
   userId: string,
 ) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
   if (!SERVING_DUTY_BY_KEY[dutyKey]) return { error: "잘못된 섬김 항목입니다." };
 
   const normalized = userId.trim() || null;
+  if (dutyKey === "prayer_meeting_lead" && normalized) {
+    const leaderIds = await listCurrentLeaderUserIds();
+    if (!leaderIds.includes(normalized)) {
+      return { error: "기도회는 이번 학기 가장만 인도할 수 있습니다." };
+    }
+  }
   const { previousUserId } = await setMeetingDutyUser(meetingId, dutyKey, normalized);
   await pushServingDutyAssignmentIfChanged(meetingId, dutyKey, previousUserId, normalized);
 
@@ -289,8 +292,7 @@ export async function createLeaderMeeting(data: {
   date: string;
   notes?: string;
 }) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
 
   const meeting = await createMeeting({
     title: data.title,
@@ -302,17 +304,22 @@ export async function createLeaderMeeting(data: {
 }
 
 export async function updateMeetingNotes(meetingId: string, notes: string) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  const { error } = await requireAnnouncementManager();
+  if (error) return { error };
   await updateMeetingNotesStore(meetingId, notes);
   revalidatePath(`/meetings/${meetingId}`);
   return { ok: true };
 }
 
 export async function setPrayerLeader(meetingId: string, leaderId: string) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
   const normalized = leaderId.trim() || null;
+  if (normalized) {
+    const leaderIds = await listCurrentLeaderUserIds();
+    if (!leaderIds.includes(normalized)) {
+      return { error: "기도회는 이번 학기 가장만 인도할 수 있습니다." };
+    }
+  }
   const { previousUserId } = await setMeetingPrayerLeader(meetingId, normalized);
   await pushServingDutyAssignmentIfChanged(
     meetingId,
@@ -330,16 +337,18 @@ export async function uploadMeetingAsset(
   formData: FormData,
 ) {
   const user = await sessionUser();
+  const actor = await getUserById(user.id);
+  const manages = !!actor && canManageApp(actor);
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { error: "파일을 선택해 주세요." };
 
   if (kind === "SCORE") {
     const meeting = await getMeetingById(meetingId);
     if (!meeting) return { error: "모임을 찾을 수 없습니다." };
-    if (meeting.prayerLeaderId !== user.id && !isPastorOrAdmin(user.role)) {
+    if (meeting.prayerLeaderId !== user.id && !manages) {
       return { error: "기도회 인도자만 악보를 올릴 수 있습니다." };
     }
-  } else if (!isPastorOrAdmin(user.role)) {
+  } else if (!manages) {
     return { error: "권한이 없습니다." };
   }
 
@@ -363,56 +372,8 @@ export async function uploadMeetingAsset(
   return { ok: true };
 }
 
-export async function createSharingPlan(
-  meetingId: string,
-  serviceDate: string,
-  useHomeGroups: boolean,
-) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role) && user.role !== "LEADER") {
-    return { error: "권한이 없습니다." };
-  }
-
-  const plan = await autoSuggestSharingGroups(
-    meetingId,
-    new Date(serviceDate).toISOString(),
-    useHomeGroups,
-    4,
-  );
-  revalidatePath(`/meetings/${meetingId}`);
-  return { ok: true, planId: plan.id };
-}
-
-export async function runAutoSharing(meetingId: string, planId: string, groupCount: number) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role) && user.role !== "LEADER") {
-    return { error: "권한이 없습니다." };
-  }
-  const plan = await getPlanById(planId);
-  if (!plan) return { error: "조편성을 찾을 수 없습니다." };
-  await autoSuggestSharingGroups(meetingId, plan.serviceDate, plan.useHomeGroups, groupCount);
-  revalidatePath(`/meetings/${meetingId}`);
-  return { ok: true };
-}
-
-export async function moveMemberSharing(
-  memberId: string,
-  toSharingGroupId: string,
-  planId: string,
-  meetingId: string,
-) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role) && user.role !== "LEADER") {
-    return { error: "권한이 없습니다." };
-  }
-  await moveMemberSharingStore(memberId, toSharingGroupId, planId);
-  revalidatePath(`/meetings/${meetingId}`);
-  return { ok: true };
-}
-
 export async function createWorshipService(date: string, title: string) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
 
   const service = await createWorshipServiceStore(new Date(date).toISOString(), title);
   revalidatePath("/worship");
@@ -429,17 +390,28 @@ export async function assignGroupSeating(serviceId: string, groupId: string, zon
   return { ok: true };
 }
 
-export async function createGroup(name: string, description?: string) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
-  await createGroupStore(name, description || null);
+export async function createGroup(name: string, leaderId: string) {
+  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
+
+  const trimmed = name.trim();
+  if (!trimmed) return { error: "가족 이름을 입력해 주세요." };
+
+  const leader = await getUserById(leaderId);
+  if (!leader || leader.role !== "LEADER") {
+    return { error: "가장은 리더 역할 사용자여야 합니다." };
+  }
+
+  const group = await createGroupStore(trimmed);
+  await handoverGroupLeader(group.id, leader.id);
   revalidatePath("/groups");
+  revalidatePath("/dashboard");
+  revalidatePath("/my-group");
+  revalidatePath("/admin/handover");
   return { ok: true };
 }
 
 export async function assignMemberToGroup(memberId: string, groupId: string) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
   await assignMemberToGroupStore(memberId, groupId);
   revalidatePath("/groups");
   revalidatePath(`/groups/${groupId}`);
@@ -448,7 +420,8 @@ export async function assignMemberToGroup(memberId: string, groupId: string) {
 
 export async function createMember(groupId: string, name: string, phone?: string) {
   const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) {
+  const actor = await getUserById(user.id);
+  if (!actor || !canManageApp(actor)) {
     const ok = await leaderCanAccessGroup(user.id, groupId);
     if (!ok) return { error: "권한이 없습니다." };
   }
@@ -459,15 +432,13 @@ export async function createMember(groupId: string, name: string, phone?: string
 }
 
 export async function setGroupLeader(groupId: string, leaderId: string) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
   return handoverLeader(groupId, leaderId);
 }
 
-/** 목사/관리자가 새 주일을 연다. */
+/** 임원·목사가 새 주일을 연다. */
 export async function createAttendanceSunday(date: string, title: string) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
 
   const sunday = await createAttendanceSundayStore(new Date(date).toISOString(), title || "주일예배");
   revalidatePath("/attendance");
@@ -475,12 +446,13 @@ export async function createAttendanceSunday(date: string, title: string) {
 }
 
 /**
- * 가족원별 1-3부/4부 참석·방송을 저장한다. 가장은 자기 가족만, 목사/관리자는 어느 가족이든 저장할 수 있고
+ * 가족원별 1-3부/4부 참석·방송을 저장한다. 가장은 자기 가족만, 임원·목사는 어느 가족이든 저장할 수 있고
  * QR도 수동으로 고칠 수 있다(`qr13_{memberId}` / `qr4_{memberId}` 체크박스가 폼에 있을 때만).
  */
 export async function saveAttendanceMarks(sundayId: string, groupId: string, formData: FormData) {
   const user = await sessionUser();
-  const canEditQr = isPastorOrAdmin(user.role);
+  const actor = await getUserById(user.id);
+  const canEditQr = !!actor && canManageApp(actor);
   if (!canEditQr) {
     const ok = await leaderCanAccessGroup(user.id, groupId);
     if (!ok) return { error: "권한이 없습니다." };
@@ -507,10 +479,10 @@ export async function saveAttendanceMarks(sundayId: string, groupId: string, for
   return { ok: true };
 }
 
-/** QR 명단 파일(CSV/xlsx)을 업로드해 이름이 일치하는 가족원의 그 부 QR을 켠다. 목사/관리자만 가능. */
+/** QR 명단 파일(CSV/xlsx)을 업로드해 이름이 일치하는 가족원의 그 부 QR을 켠다. 임원·목사만 가능. */
 export async function importAttendanceQr(sundayId: string, service: "s13" | "s4", formData: FormData) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  const actor = await requireAppManager();
+  if (!actor) return { error: "권한이 없습니다." };
 
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { error: "파일을 선택해 주세요." };
@@ -525,7 +497,7 @@ export async function importAttendanceQr(sundayId: string, service: "s13" | "s4"
     service,
     names,
     members: members.map((m) => ({ id: m.id, groupId: m.groupId, name: m.name })),
-    updatedById: user.id,
+    updatedById: actor.id,
   });
 
   revalidatePath(`/attendance/${sundayId}`);
@@ -541,8 +513,7 @@ export async function importAttendanceQr(sundayId: string, service: "s13" | "s4"
 
 /** 목사/관리자가 참여조사를 만든다. q1_label..q6_label / q1_type..q6_type 필드로 질문을 받는다. */
 export async function createEventSurvey(formData: FormData) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
 
   const title = ((formData.get("title") as string) || "").trim();
   const eventDate = formData.get("eventDate") as string;
@@ -569,8 +540,7 @@ export async function createEventSurvey(formData: FormData) {
 }
 
 export async function closeEventSurvey(surveyId: string) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
   await setEventSurveyStatusStore(surveyId, "closed");
   revalidatePath(`/surveys/${surveyId}`);
   revalidatePath("/surveys");
@@ -578,25 +548,26 @@ export async function closeEventSurvey(surveyId: string) {
 }
 
 export async function reopenEventSurvey(surveyId: string) {
-  const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) return { error: "권한이 없습니다." };
+  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
   await setEventSurveyStatusStore(surveyId, "open");
   revalidatePath(`/surveys/${surveyId}`);
   revalidatePath("/surveys");
   return { ok: true };
 }
 
-/** 가장은 자기 가족원 응답만, 목사/관리자는 어느 가족이든 저장할 수 있다. */
+/** 가장은 자기 가족원 응답만, 임원·목사는 어느 가족이든 저장할 수 있다. */
 export async function saveSurveyResponses(surveyId: string, groupId: string, formData: FormData) {
   const user = await sessionUser();
-  if (!isPastorOrAdmin(user.role)) {
+  const actor = await getUserById(user.id);
+  const manages = !!actor && canManageApp(actor);
+  if (!manages) {
     const ok = await leaderCanAccessGroup(user.id, groupId);
     if (!ok) return { error: "권한이 없습니다." };
   }
 
   const survey = await getEventSurveyByIdStore(surveyId);
   if (!survey) return { error: "조사를 찾을 수 없습니다." };
-  if (survey.status === "closed" && !isPastorOrAdmin(user.role)) {
+  if (survey.status === "closed" && !manages) {
     return { error: "마감된 조사입니다." };
   }
 

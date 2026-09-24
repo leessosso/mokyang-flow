@@ -1,22 +1,21 @@
 import Link from "next/link";
-import { auth } from "@/auth";
 import { createGroup } from "@/app/actions";
-import { Button, Card, CardHeader, Input, Label, Textarea } from "@/components/ui";
-import { isPastorOrAdmin } from "@/lib/auth";
+import { Button, Card, CardHeader, Input, Label } from "@/components/ui";
+import { currentUserCanManageApp } from "@/lib/auth";
 import { termLabel } from "@/lib/format";
 import { listAllMembers, listGroups, listUnassignedMembers } from "@/lib/store/groups";
 import { getCurrentTerm } from "@/lib/store/settings";
-import { getUsersByIds } from "@/lib/store/users";
+import { getUsersByIds, listUsersByRole } from "@/lib/store/users";
 
 export default async function GroupsPage() {
-  const session = await auth();
-  const canAdmin = isPastorOrAdmin(session!.user.role);
+  const canAdmin = await currentUserCanManageApp();
 
-  const [term, groups, unassigned, members] = await Promise.all([
+  const [term, groups, unassigned, members, leaderUsers] = await Promise.all([
     getCurrentTerm(),
     listGroups(),
     canAdmin ? listUnassignedMembers() : Promise.resolve([]),
     listAllMembers(),
+    canAdmin ? listUsersByRole("LEADER") : Promise.resolve([]),
   ]);
   const leaders = await getUsersByIds(groups.map((g) => g.currentLeaderId ?? "").filter(Boolean));
 
@@ -35,10 +34,7 @@ export default async function GroupsPage() {
           <form
             action={async (fd) => {
               "use server";
-              await createGroup(
-                fd.get("name") as string,
-                (fd.get("description") as string) || undefined,
-              );
+              await createGroup(fd.get("name") as string, fd.get("leaderId") as string);
             }}
             className="mt-3 grid gap-3 sm:grid-cols-2"
           >
@@ -47,8 +43,23 @@ export default async function GroupsPage() {
               <Input name="name" required placeholder="4가족" />
             </div>
             <div>
-              <Label>설명</Label>
-              <Textarea name="description" placeholder="모임 요일 등" />
+              <Label>가장</Label>
+              <select
+                name="leaderId"
+                required
+                defaultValue=""
+                className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-stone-500 focus:outline-none focus:ring-1 focus:ring-stone-500"
+              >
+                <option value="" disabled>
+                  가장 선택
+                </option>
+                {leaderUsers.map((leader) => (
+                  <option key={leader.id} value={leader.id}>
+                    {leader.name}
+                    {leader.officerTitle ? ` · ${leader.officerTitle}` : ""}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="sm:col-span-2">
               <Button type="submit">추가</Button>
@@ -74,10 +85,7 @@ export default async function GroupsPage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {groups.map((g) => (
           <Card key={g.id}>
-            <CardHeader
-              title={g.name}
-              subtitle={g.description ?? "설명 없음"}
-            />
+            <CardHeader title={g.name} />
             <div className="space-y-2 px-4 py-3 text-sm sm:px-5">
               <p>
                 <span className="text-stone-500">가장:</span>{" "}

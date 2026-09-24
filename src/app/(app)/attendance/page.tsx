@@ -1,14 +1,12 @@
 import Link from "next/link";
-import { auth } from "@/auth";
 import { createAttendanceSunday } from "@/app/actions";
 import { Button, Card, CardHeader, Input, Label } from "@/components/ui";
-import { isPastorOrAdmin } from "@/lib/auth";
+import { currentUserCanManageApp } from "@/lib/auth";
 import { formatDateKo } from "@/lib/format";
 import { listAttendanceSundays, listMarksBySunday, summarizeAllMarks } from "@/lib/store/attendance";
 
 export default async function AttendanceListPage() {
-  const session = await auth();
-  const canAdmin = isPastorOrAdmin(session!.user.role);
+  const canAdmin = await currentUserCanManageApp();
 
   const sundays = await listAttendanceSundays();
 

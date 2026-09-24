@@ -5,9 +5,6 @@ import { hashPassword } from "../src/lib/password";
 const COLLECTIONS = [
   "pastoralMessages",
   "pastoralThreads",
-  "sharingAssignments",
-  "sharingGroups",
-  "sharingPlans",
   "seatingAssignments",
   "seatingZones",
   "worshipServices",
@@ -68,7 +65,6 @@ async function main() {
     name: "정총무",
     role: "LEADER",
     officerTitle: "총무",
-    servingDutyKeys: ["sorting_hat_facilitator", "worship_usher"],
   });
 
   await getDb().collection("settings").doc("app").set({ year: 2026, half: "H1" });
@@ -161,26 +157,6 @@ async function main() {
     dutyUserIds: { prayer_meeting_lead: leader2Id },
     createdAt: now,
   });
-
-  const planRef = getDb().collection("sharingPlans").doc();
-  await planRef.set({
-    meetingId: meetingRef.id,
-    serviceDate: "2026-03-05T00:00:00.000Z",
-    useHomeGroups: false,
-  });
-
-  const sg1Ref = getDb().collection("sharingGroups").doc();
-  await sg1Ref.set({ planId: planRef.id, name: "나눔조 A", homeGroupId: null });
-  const sg2Ref = getDb().collection("sharingGroups").doc();
-  await sg2Ref.set({ planId: planRef.id, name: "나눔조 B", homeGroupId: null });
-
-  const memberIdList = Object.values(memberIds);
-  for (let i = 0; i < 5; i++) {
-    await getDb().collection("sharingAssignments").doc().set({
-      sharingGroupId: i % 2 === 0 ? sg1Ref.id : sg2Ref.id,
-      memberId: memberIdList[i],
-    });
-  }
 
   // 주일 예배 좌석
   const serviceRef = getDb().collection("worshipServices").doc();

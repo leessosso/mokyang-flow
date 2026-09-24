@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { Button, Card, CardHeader, Label } from "@/components/ui";
-import { isPastorOrAdmin } from "@/lib/auth";
+import { currentUserCanManageApp } from "@/lib/auth";
 import { formatDateKo } from "@/lib/format";
 import {
   getAttendanceSundayById,
@@ -28,7 +28,7 @@ export default async function AttendanceSundayPage({
   const sunday = await getAttendanceSundayById(sundayId);
   if (!sunday) notFound();
 
-  if (!isPastorOrAdmin(user.role)) {
+  if (!(await currentUserCanManageApp())) {
     const myGroup = await getGroupByCurrentLeader(user.id);
     if (!myGroup) {
       return (

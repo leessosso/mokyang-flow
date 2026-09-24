@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { saveSurveyResponses } from "@/app/actions";
 import { Button, Card, CardHeader } from "@/components/ui";
-import { isPastorOrAdmin, leaderCanAccessGroup } from "@/lib/auth";
+import { currentUserCanManageApp, leaderCanAccessGroup } from "@/lib/auth";
 import { formatDateKo } from "@/lib/format";
 import { getGroupById, listMembersByGroup } from "@/lib/store/groups";
 import {
@@ -20,7 +20,7 @@ export default async function SurveyGroupPage({
   const { id, groupId } = await params;
   const session = await auth();
   const user = session!.user;
-  const canAdmin = isPastorOrAdmin(user.role);
+  const canAdmin = await currentUserCanManageApp();
 
   if (!canAdmin) {
     const ok = await leaderCanAccessGroup(user.id, groupId);

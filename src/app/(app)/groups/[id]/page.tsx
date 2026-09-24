@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { assignMemberToGroup, createMember } from "@/app/actions";
 import { Button, Card, CardHeader, Input } from "@/components/ui";
-import { isPastorOrAdmin } from "@/lib/auth";
+import { currentUserCanManageApp } from "@/lib/auth";
 import { formatDateKo, termLabel } from "@/lib/format";
 import {
   getGroupById,
@@ -20,7 +20,7 @@ export default async function GroupDetailPage({
 }) {
   const { id } = await params;
   const session = await auth();
-  const canAdmin = isPastorOrAdmin(session!.user.role);
+  const canAdmin = await currentUserCanManageApp();
 
   const group = await getGroupById(id);
   if (!group) notFound();

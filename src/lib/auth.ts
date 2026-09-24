@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { getGroupById, getMemberById } from "@/lib/store/groups";
 import { getUserById } from "@/lib/store/users";
-import { isPastorOrAdmin, type Role } from "@/lib/types";
+import { isPastorOrAdmin, canManageApp, type Role } from "@/lib/types";
 
 export { isPastorOrAdmin };
 
@@ -17,6 +17,11 @@ export async function getCurrentUser() {
   const session = await auth();
   if (!session?.user?.id) return null;
   return getUserById(session.user.id);
+}
+
+export async function currentUserCanManageApp() {
+  const user = await getCurrentUser();
+  return user ? canManageApp(user) : false;
 }
 
 /** 그 가족원이 속한 가족의 현재 가장인지 확인 (가족 보고 방 권한에도 그대로 쓰인다) */

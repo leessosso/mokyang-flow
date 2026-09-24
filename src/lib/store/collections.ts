@@ -15,9 +15,6 @@ import type {
   PastoralThread,
   SeatingAssignment,
   SeatingZone,
-  SharingAssignment,
-  SharingGroup,
-  SharingPlan,
   User,
   WorshipService,
 } from "@/lib/types";
@@ -41,9 +38,6 @@ export const membersCol = lazyCollection<Omit<Member, "id">>("members");
 export const groupLeaderTermsCol = lazyCollection<Omit<GroupLeaderTerm, "id">>("groupLeaderTerms");
 export const leaderMeetingsCol = lazyCollection<Omit<LeaderMeeting, "id">>("leaderMeetings");
 export const meetingAssetsCol = lazyCollection<Omit<MeetingAsset, "id">>("meetingAssets");
-export const sharingPlansCol = lazyCollection<Omit<SharingPlan, "id">>("sharingPlans");
-export const sharingGroupsCol = lazyCollection<Omit<SharingGroup, "id">>("sharingGroups");
-export const sharingAssignmentsCol = lazyCollection<Omit<SharingAssignment, "id">>("sharingAssignments");
 export const worshipServicesCol = lazyCollection<Omit<WorshipService, "id">>("worshipServices");
 export const seatingZonesCol = lazyCollection<Omit<SeatingZone, "id">>("seatingZones");
 export const seatingAssignmentsCol = lazyCollection<Omit<SeatingAssignment, "id">>("seatingAssignments");

@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
 import { handoverLeader, startNextFamilyTerm, updateOfficerTitle, updateUserServingDuties } from "@/app/actions";
 import { Button, Card, CardHeader, Label } from "@/components/ui";
-import { isPastorOrAdmin } from "@/lib/auth";
+import { currentUserCanManageApp } from "@/lib/auth";
 import { formatDateKo, termLabel } from "@/lib/format";
 import { listAllGroups, listGroups, listLeaderTermsByGroup } from "@/lib/store/groups";
 import { getCurrentTerm } from "@/lib/store/settings";
@@ -13,8 +12,7 @@ import { nextTerm, sameTerm } from "@/lib/term";
 import { OFFICER_TITLES, SERVING_DUTIES } from "@/lib/types";
 
 export default async function HandoverPage() {
-  const session = await auth();
-  if (!isPastorOrAdmin(session!.user.role)) redirect("/dashboard");
+  if (!(await currentUserCanManageApp())) redirect("/dashboard");
 
   const [term, groups, allGroups, leaders, loginUsers] = await Promise.all([
     getCurrentTerm(),
@@ -114,7 +112,7 @@ export default async function HandoverPage() {
       <Card>
         <CardHeader
           title="섬김 담당 매핑"
-          subtitle="로그인 사용자(목사·관리자·가장)별로 맡을 수 있는 섬김 슬롯을 지정합니다. 리더 모임에서 이번 주 담당을 배정하면 해당 사용자에게 푸시가 갑니다."
+          subtitle="기도회 인도를 맡을 수 있는 가장을 지정합니다. 리더 모임에서 그 주 인도자를 고르면 해당 사용자에게 푸시가 갑니다."
         />
         <ul className="divide-y divide-stone-100">
           {loginUsers.map((u) => {
