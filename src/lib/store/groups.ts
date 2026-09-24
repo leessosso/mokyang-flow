@@ -41,6 +41,18 @@ export async function getGroupByCurrentLeader(leaderId: string): Promise<Group |
   return groups.find((g) => sameTerm(groupTerm(g), term)) ?? null;
 }
 
+/** 이번 학기 담당 가족이 있는 가장(LEADER) 사용자 id. 출석 리마인더 수신 대상. */
+export async function listCurrentLeaderUserIds(): Promise<string[]> {
+  const groups = await listGroups();
+  const leaderIds = [
+    ...new Set(groups.map((g) => g.currentLeaderId).filter((id): id is string => Boolean(id))),
+  ];
+  if (leaderIds.length === 0) return [];
+
+  const users = await getUsersByIds(leaderIds);
+  return leaderIds.filter((id) => users.get(id)?.role === "LEADER");
+}
+
 export async function listMembersByGroup(groupId: string): Promise<Member[]> {
   const snap = await membersCol.where("groupId", "==", groupId).get();
   return snap.docs.map(withId).sort((a, b) => a.name.localeCompare(b.name, "ko"));
