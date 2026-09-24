@@ -17,10 +17,17 @@ function chunk<T>(items: T[], size: number): T[][] {
   return out;
 }
 
-export async function sendWebPushToTokens(tokens: string[], payload: WebPushPayload): Promise<void> {
-  if (tokens.length === 0) return;
+export type WebPushSendStats = { successCount: number; failureCount: number };
+
+export async function sendWebPushToTokens(
+  tokens: string[],
+  payload: WebPushPayload,
+): Promise<WebPushSendStats> {
+  if (tokens.length === 0) return { successCount: 0, failureCount: 0 };
 
   const messaging = getMessaging(ensureApp());
+  let successCount = 0;
+  let failureCount = 0;
   const messageBase: Omit<MulticastMessage, "tokens"> = {
     notification: {
       title: payload.title,
@@ -43,6 +50,8 @@ export async function sendWebPushToTokens(tokens: string[], payload: WebPushPayl
 
   for (const batch of chunk(tokens, 500)) {
     const res = await messaging.sendEachForMulticast({ ...messageBase, tokens: batch });
+    successCount += res.successCount;
+    failureCount += res.failureCount;
     if (res.failureCount > 0) {
       console.warn(
         `[push] ${res.failureCount}/${batch.length} tokens failed`,
@@ -52,6 +61,32 @@ export async function sendWebPushToTokens(tokens: string[], payload: WebPushPayl
       );
     }
   }
+  return { successCount, failureCount };
+}
+
+/** 공지 발송 — 구독 중인 대상에게 「공지 · {title}」 푸시. */
+export async function notifyUsersOfAnnouncement(options: {
+  userIds: string[];
+  announcementId: string;
+  title: string;
+  bodyPreview: string;
+}): Promise<WebPushSendStats> {
+  const uniqueUserIds = [...new Set(options.userIds)].filter(Boolean);
+  if (uniqueUserIds.length === 0) return { successCount: 0, failureCount: 0 };
+
+  const tokens = await listPushTokensForUserIds(uniqueUserIds);
+  if (tokens.length === 0) return { successCount: 0, failureCount: 0 };
+
+  const body =
+    options.bodyPreview.length > 120
+      ? `${options.bodyPreview.slice(0, 120)}…`
+      : options.bodyPreview;
+
+  return sendWebPushToTokens(tokens, {
+    title: `공지 · ${options.title}`,
+    body,
+    url: `/announcements/${options.announcementId}`,
+  });
 }
 
 /** 가족 보고(가장 작성) 시 목사·관리자 구독자에게 알림. */

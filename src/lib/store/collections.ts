@@ -3,6 +3,7 @@ import { getDb } from "@/lib/firebase-admin";
 import type {
   AttendanceMark,
   AttendanceSunday,
+  Announcement,
   EventResponse,
   EventSurvey,
   Group,
@@ -51,6 +52,7 @@ export const pastoralMessagesCol = lazyCollection<Omit<PastoralMessage, "id">>("
 export const settingsCol = lazyCollection<Term>("settings");
 export const attendanceSundaysCol = lazyCollection<Omit<AttendanceSunday, "id">>("attendanceSundays");
 export const attendanceMarksCol = lazyCollection<Omit<AttendanceMark, "id">>("attendanceMarks");
+export const announcementsCol = lazyCollection<Omit<Announcement, "id">>("announcements");
 export const eventSurveysCol = lazyCollection<Omit<EventSurvey, "id">>("eventSurveys");
 export const eventResponsesCol = lazyCollection<Omit<EventResponse, "id">>("eventResponses");
 export const pushSubscriptionsCol = lazyCollection<{
