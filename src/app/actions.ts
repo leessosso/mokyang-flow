@@ -7,7 +7,7 @@ import {
   isPastorOrAdmin,
   leaderCanAccessGroup,
 } from "@/lib/auth";
-import { canManageAnnouncements, canManageApp, SERVING_DUTIES, SERVING_DUTY_BY_KEY } from "@/lib/types";
+import { canManageAnnouncements, canManageApp, isSpecialAttendance, SERVING_DUTIES, SERVING_DUTY_BY_KEY } from "@/lib/types";
 import {
   assignMemberToGroup as assignMemberToGroupStore,
   createGroup as createGroupStore,
@@ -41,9 +41,11 @@ import {
 } from "@/lib/store/meetings";
 import { sendFamilyMessage } from "@/lib/store/reports";
 import { assignGroupSeating as assignGroupSeatingStore, createWorshipService as createWorshipServiceStore } from "@/lib/store/worship";
+import { isWeeklyAttendanceOpen, kstDateKeyFromIso } from "@/lib/kst-date";
 import {
   createSpecialAttendance as createSpecialAttendanceStore,
   importQrNames,
+  resolveAttendanceSunday,
   saveAttendanceMarks as saveAttendanceMarksStore,
   type SaveMarkEntry,
 } from "@/lib/store/attendance";
@@ -438,6 +440,16 @@ export async function createSpecialAttendance(date: string, title: string) {
   return { ok: true, id: sunday.id };
 }
 
+/** 매주 주일 출석은 그 주일부터 토요일까지만 고친다. 비정기 출석체크는 그대로 연다. */
+async function openAttendanceSundayId(sundayId: string): Promise<{ error: string } | { id: string }> {
+  const sunday = await resolveAttendanceSunday(sundayId);
+  if (!sunday) return { error: "출석을 찾을 수 없습니다." };
+  if (!isSpecialAttendance(sunday) && !isWeeklyAttendanceOpen(kstDateKeyFromIso(sunday.date))) {
+    return { error: "이번 주일 출석만 그 주 토요일까지 입력할 수 있습니다." };
+  }
+  return { id: sunday.id };
+}
+
 /**
  * 가족원별 1-3부/4부 참석·방송을 저장한다. 가장은 자기 가족만, 임원·목사는 어느 가족이든 저장할 수 있고
  * QR도 수동으로 고칠 수 있다(`qr13_{memberId}` / `qr4_{memberId}` 체크박스가 폼에 있을 때만).
@@ -450,6 +462,10 @@ export async function saveAttendanceMarks(sundayId: string, groupId: string, for
     const ok = await leaderCanAccessGroup(user.id, groupId);
     if (!ok) return { error: "권한이 없습니다." };
   }
+
+  const opened = await openAttendanceSundayId(sundayId);
+  if ("error" in opened) return opened;
+  sundayId = opened.id;
 
   const memberIds = formData.getAll("memberId").map(String);
   const entries: SaveMarkEntry[] = memberIds.map((memberId) => {
@@ -476,6 +492,10 @@ export async function saveAttendanceMarks(sundayId: string, groupId: string, for
 export async function importAttendanceQr(sundayId: string, service: "s13" | "s4", formData: FormData) {
   const actor = await requireAppManager();
   if (!actor) return { error: "권한이 없습니다." };
+
+  const opened = await openAttendanceSundayId(sundayId);
+  if ("error" in opened) return opened;
+  sundayId = opened.id;
 
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { error: "파일을 선택해 주세요." };

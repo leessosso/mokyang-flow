@@ -58,6 +58,19 @@ export function mostRecentSundayKey(now = new Date()): string {
   return shiftDateKey(dateKey, -weekday);
 }
 
+/** 그 주일 출석을 닫는 날. 주일로부터 6일 뒤인 토요일. */
+export function weeklyAttendanceCloseDateKey(sundayDateKey: string): string {
+  return shiftDateKey(sundayDateKey, 6);
+}
+
+/**
+ * 이번 주일만 입력할 수 있다.
+ * 20일 주일이면 26일(토)까지이고, 27일(다음 주일)부터는 그 전 주 출석이 닫힌다.
+ */
+export function isWeeklyAttendanceOpen(sundayDateKey: string, now = new Date()): boolean {
+  return sundayDateKey === mostRecentSundayKey(now);
+}
+
 export function isKstSunday(now = new Date()): boolean {
   return kstCalendar(now).weekday === 0;
 }

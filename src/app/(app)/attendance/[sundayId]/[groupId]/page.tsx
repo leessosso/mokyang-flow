@@ -6,6 +6,12 @@ import { Button, Card, CardHeader } from "@/components/ui";
 import { currentUserCanManageApp, leaderCanAccessGroup } from "@/lib/auth";
 import { formatDateKo } from "@/lib/format";
 import {
+  dateKeyToKstNoonIso,
+  isWeeklyAttendanceOpen,
+  kstDateKeyFromIso,
+  weeklyAttendanceCloseDateKey,
+} from "@/lib/kst-date";
+import {
   listMarksBySundayAndGroup,
   markMapByMemberId,
   resolveAttendanceSunday,
@@ -47,6 +53,10 @@ export default async function AttendanceGroupPage({
   if (!group) notFound();
 
   const special = isSpecialAttendance(sunday);
+  const editable = special || isWeeklyAttendanceOpen(kstDateKeyFromIso(sunday.date));
+  const closeLabel = formatDateKo(
+    dateKeyToKstNoonIso(weeklyAttendanceCloseDateKey(kstDateKeyFromIso(sunday.date))),
+  );
 
   const marks = markMapByMemberId(existingMarks);
   const totals = summarizeMarks(members.map((m) => m.id), marks);
@@ -69,7 +79,15 @@ export default async function AttendanceGroupPage({
       <Card>
         <CardHeader
           title={special ? "참석 체크" : "가족원 출석"}
-          subtitle={special || canEditQr ? undefined : "QR은 교회 명단 업로드로만 켜집니다"}
+          subtitle={
+            !editable
+              ? "지난 주일 출석은 수정할 수 없습니다"
+              : special
+                ? undefined
+                : canEditQr
+                  ? `${closeLabel}까지 입력할 수 있습니다`
+                  : `QR은 교회 명단 업로드로만 켜집니다 · ${closeLabel}까지`
+          }
         />
         <form
           action={async (fd) => {
@@ -77,6 +95,7 @@ export default async function AttendanceGroupPage({
             await saveAttendanceMarks(sunday.id, groupId, fd);
           }}
         >
+          <fieldset disabled={!editable} className="min-w-0 border-0 p-0">
           <div className="overflow-x-auto">
             <table className={`w-full text-sm ${special ? "" : "min-w-[560px]"}`}>
               <thead>
@@ -190,7 +209,8 @@ export default async function AttendanceGroupPage({
               </tbody>
             </table>
           </div>
-          {members.length > 0 && (
+          </fieldset>
+          {editable && members.length > 0 && (
             <div className="border-t border-stone-100 p-4 sm:p-5">
               <Button type="submit">저장</Button>
             </div>

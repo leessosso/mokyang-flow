@@ -5,6 +5,12 @@ import { Button, Card, CardHeader, Label } from "@/components/ui";
 import { currentUserCanManageApp } from "@/lib/auth";
 import { formatDateKo } from "@/lib/format";
 import {
+  dateKeyToKstNoonIso,
+  isWeeklyAttendanceOpen,
+  kstDateKeyFromIso,
+  weeklyAttendanceCloseDateKey,
+} from "@/lib/kst-date";
+import {
   listMarksBySunday,
   markMapByMemberId,
   resolveAttendanceSunday,
@@ -31,6 +37,10 @@ export default async function AttendanceSundayPage({
   if (sunday.id !== sundayId) redirect(`/attendance/${sunday.id}`);
 
   const special = isSpecialAttendance(sunday);
+  const editable = special || isWeeklyAttendanceOpen(kstDateKeyFromIso(sunday.date));
+  const closeLabel = formatDateKo(
+    dateKeyToKstNoonIso(weeklyAttendanceCloseDateKey(kstDateKeyFromIso(sunday.date))),
+  );
 
   if (!(await currentUserCanManageApp())) {
     const myGroup = await getGroupByCurrentLeader(user.id);
@@ -63,6 +73,11 @@ export default async function AttendanceSundayPage({
         <Link href="/attendance" className="text-sm text-stone-600 underline">← 출석</Link>
         <h2 className="mt-2 text-xl font-semibold">{sunday.title}</h2>
         <p className="text-sm text-stone-600">{formatDateKo(sunday.date)}</p>
+        {!special && (
+          <p className="mt-1 text-sm text-stone-500">
+            {editable ? `${closeLabel}까지 입력할 수 있습니다.` : "지난 주일 출석은 수정할 수 없습니다."}
+          </p>
+        )}
       </div>
 
       {sp.qrMatched !== undefined && (
@@ -79,7 +94,7 @@ export default async function AttendanceSundayPage({
         </Card>
       )}
 
-      {!special && (
+      {!special && editable && (
       <Card>
         <CardHeader title="QR 명단 가져오기" subtitle="CSV 또는 xlsx 파일의 첫 열에서 이름을 읽습니다" />
         <form

@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { createSpecialAttendance } from "@/app/actions";
+import { CollapsibleSection } from "@/components/collapsible-section";
 import { Badge, Button, Card, CardHeader, Input, Label } from "@/components/ui";
 import { currentUserCanManageApp } from "@/lib/auth";
 import { formatDateKo } from "@/lib/format";
-import { kstDateKeyFromIso, mostRecentSundayKey } from "@/lib/kst-date";
+import {
+  dateKeyToKstNoonIso,
+  kstDateKeyFromIso,
+  mostRecentSundayKey,
+  weeklyAttendanceCloseDateKey,
+} from "@/lib/kst-date";
 import {
   listMarksBySunday,
   listSpecialSundays,
@@ -39,7 +45,7 @@ export default async function AttendanceListPage() {
       <div>
         <h2 className="text-xl font-semibold">출석</h2>
         <p className="text-sm text-stone-600">
-          매주 주일 출석은 일정을 만들지 않아도 바로 입력합니다. 1-3부·4부 참석·방송과 가족모임을 적습니다.
+          이번 주일 출석은 그 주 토요일까지 입력합니다. 다음 일요일부터는 전 주 출석을 고칠 수 없습니다.
         </p>
       </div>
 
@@ -54,13 +60,15 @@ export default async function AttendanceListPage() {
               <Badge tone="green">이번 주일</Badge>
             </div>
             <p className="text-sm text-stone-500">{formatDateKo(current.sunday.date)}</p>
+            <p className="mt-1 text-xs text-stone-500">
+              {formatDateKo(dateKeyToKstNoonIso(weeklyAttendanceCloseDateKey(currentKey)))}까지 입력
+            </p>
             <WeekTotals totals={totalsById.get(current.sunday.id)} />
           </Link>
         </Card>
       )}
 
-      <Card>
-        <CardHeader title="지난 주일" subtitle="지난 출석도 같은 화면에서 고칠 수 있습니다" />
+      <CollapsibleSection title="지난 주일" subtitle="지난 주일은 볼 수만 있습니다">
         <ul className="divide-y divide-stone-100">
           {past.map((week) => (
             <li key={week.sunday.id}>
@@ -75,7 +83,7 @@ export default async function AttendanceListPage() {
             </li>
           ))}
         </ul>
-      </Card>
+      </CollapsibleSection>
 
       {(canAdmin || specials.length > 0) && (
         <div
