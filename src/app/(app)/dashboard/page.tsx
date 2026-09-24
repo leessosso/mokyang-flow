@@ -13,6 +13,9 @@ import {
   SORTING_HAT_USER_PATH,
   canManageSortingHat,
 } from "@/lib/sorting-hat";
+import { PushNotificationSettings } from "@/components/push-notification-settings";
+import { isWebPushConfigured } from "@/lib/firebase-client";
+import { listPushSubscriptionsForUser } from "@/lib/store/push-subscriptions";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -48,6 +51,11 @@ export default async function DashboardPage() {
     missingAttendanceCount = attendanceGroups.filter((g) => !groupIdsWithMarks.has(g.id)).length;
   }
 
+  const webPushConfigured = isWebPushConfigured();
+  const webPushSubscribed = webPushConfigured
+    ? (await listPushSubscriptionsForUser(user.id)).length > 0
+    : false;
+
   return (
     <div className="space-y-6">
       <div>
@@ -64,6 +72,11 @@ export default async function DashboardPage() {
           )}
         </p>
       </div>
+
+      <PushNotificationSettings
+        configured={webPushConfigured}
+        initialSubscribed={webPushSubscribed}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
         {myGroup && (

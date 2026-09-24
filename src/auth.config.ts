@@ -12,7 +12,12 @@ export const authConfig: NextAuthConfig = {
       const isLoggedIn = !!auth?.user;
       const isLogin = request.nextUrl.pathname.startsWith("/login");
       const isSortingHat = request.nextUrl.pathname.startsWith("/sorting-hat");
-      if (!isLoggedIn && !isLogin && !isSortingHat) return false;
+      const path = request.nextUrl.pathname;
+      const isPwaPublic =
+        path === "/manifest.webmanifest" ||
+        path === "/firebase-messaging-sw.js" ||
+        path.startsWith("/icons/");
+      if (!isLoggedIn && !isLogin && !isSortingHat && !isPwaPublic) return false;
       if (isLoggedIn && isLogin) {
         return Response.redirect(new URL("/dashboard", request.nextUrl));
       }

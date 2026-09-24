@@ -53,6 +53,13 @@ export const attendanceSundaysCol = lazyCollection<Omit<AttendanceSunday, "id">>
 export const attendanceMarksCol = lazyCollection<Omit<AttendanceMark, "id">>("attendanceMarks");
 export const eventSurveysCol = lazyCollection<Omit<EventSurvey, "id">>("eventSurveys");
 export const eventResponsesCol = lazyCollection<Omit<EventResponse, "id">>("eventResponses");
+export const pushSubscriptionsCol = lazyCollection<{
+  userId: string;
+  token: string;
+  createdAt: string;
+  lastSeenAt: string;
+  userAgent?: string;
+}>("pushSubscriptions");
 
 export function withId<T extends DocumentData>(
   snap: QueryDocumentSnapshot<T>,
