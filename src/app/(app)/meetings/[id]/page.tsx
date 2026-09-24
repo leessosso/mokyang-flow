@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import {
   createSharingPlan,
-  setPrayerLeader,
+  setMeetingServingDuty,
   updateMeetingNotes,
   uploadMeetingAsset,
 } from "@/app/actions";
@@ -18,13 +18,13 @@ import {
   listSharingGroupsByPlan,
   getPlanByMeeting,
 } from "@/lib/store/sharing";
-import { listUsersByRole } from "@/lib/store/users";
+import { listLoginUsersForServing } from "@/lib/store/users";
 import {
   SORTING_HAT_ADMIN_PATH,
   SORTING_HAT_USER_PATH,
   canManageSortingHat,
 } from "@/lib/sorting-hat";
-import type { MeetingAssetKind } from "@/lib/types";
+import { SERVING_DUTIES, meetingDutyUserId, type MeetingAssetKind } from "@/lib/types";
 
 const ASSET_LABEL: Record<MeetingAssetKind, string> = {
   LESSON: "교안",
@@ -46,19 +46,20 @@ export default async function MeetingDetailPage({
   const meeting = await getMeetingById(id);
   if (!meeting) notFound();
 
-  const [assets, leaders, plan] = await Promise.all([
+  const [assets, loginUsers, plan] = await Promise.all([
     listAssetsByMeeting(id),
-    listUsersByRole("LEADER"),
+    listLoginUsersForServing(),
     getPlanByMeeting(id),
   ]);
 
   const lessonAssets = assets.filter((a) => a.kind === "LESSON" || a.kind === "LESSON_COMMENTARY");
   const scoreAssets = assets.filter((a) => a.kind === "SCORE");
 
-  const prayerLeaderName = meeting.prayerLeaderId
-    ? leaders.find((l) => l.id === meeting.prayerLeaderId)?.name
+  const prayerLeaderId = meetingDutyUserId(meeting, "prayer_meeting_lead");
+  const prayerLeaderName = prayerLeaderId
+    ? loginUsers.find((l) => l.id === prayerLeaderId)?.name
     : undefined;
-  const isPrayerLeader = meeting.prayerLeaderId === user.id;
+  const isPrayerLeader = prayerLeaderId === user.id;
 
   let sharingGroups: { id: string; name: string; assignments: { member: { id: string; name: string } }[] }[] = [];
   if (plan) {
@@ -142,32 +143,70 @@ export default async function MeetingDetailPage({
       </Card>
 
       <Card>
+        <CardHeader
+          title="섬김 담당 (이번 모임)"
+          subtitle="담당을 저장하면 해당 사용자 기기로 「본인 담당」 푸시가 갑니다 (알림을 켠 경우)"
+        />
+        <ul className="divide-y divide-stone-100">
+          {SERVING_DUTIES.map((duty) => {
+            const currentUserId = meetingDutyUserId(meeting, duty.key);
+            const assigneeName = currentUserId
+              ? loginUsers.find((u) => u.id === currentUserId)?.name
+              : undefined;
+            return (
+              <li key={duty.key} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
+                <div>
+                  <p className="text-sm font-medium text-stone-900">{duty.label}</p>
+                  <p className="text-xs text-stone-500">
+                    담당: {assigneeName ?? "미지정"}
+                  </p>
+                </div>
+                {canAdmin && (
+                  <form
+                    action={async (fd) => {
+                      "use server";
+                      await setMeetingServingDuty(
+                        id,
+                        duty.key,
+                        (fd.get("userId") as string) ?? "",
+                      );
+                    }}
+                    className="flex flex-wrap items-center gap-2"
+                  >
+                    <select
+                      name="userId"
+                      defaultValue={currentUserId ?? ""}
+                      className="rounded-lg border border-stone-300 px-2 py-1.5 text-sm"
+                    >
+                      <option value="">미지정</option>
+                      {loginUsers.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                          {(u.servingDutyKeys ?? []).includes(duty.key) ? " ★" : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <Button type="submit" variant="secondary">저장</Button>
+                  </form>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        {!canAdmin && (
+          <p className="border-t border-stone-100 px-4 py-3 text-xs text-stone-500 sm:px-5">
+            담당 변경은 목사·관리자만 할 수 있습니다.
+          </p>
+        )}
+      </Card>
+
+      <Card>
         <CardHeader title="리더 모임 전 기도회" subtitle="지정된 인도자만 악보를 올릴 수 있습니다" />
         <div className="space-y-3 p-4 sm:p-5">
           <p className="text-sm text-stone-700">
             기도회 인도자: <span className="font-medium">{prayerLeaderName ?? "미지정"}</span>
+            <span className="ml-2 text-xs text-stone-500">(위 「섬김 담당」에서 지정)</span>
           </p>
-          {canAdmin && (
-            <form
-              action={async (fd) => {
-                "use server";
-                await setPrayerLeader(id, fd.get("prayerLeaderId") as string);
-              }}
-              className="flex flex-wrap items-end gap-3"
-            >
-              <select
-                name="prayerLeaderId"
-                defaultValue={meeting.prayerLeaderId ?? ""}
-                className="rounded-lg border border-stone-300 px-3 py-2 text-sm"
-              >
-                <option value="">미지정</option>
-                {leaders.map((l) => (
-                  <option key={l.id} value={l.id}>{l.name}</option>
-                ))}
-              </select>
-              <Button type="submit" variant="secondary">지정</Button>
-            </form>
-          )}
           <ul className="space-y-2">
             {scoreAssets.map((a) => (
               <li key={a.id} className="flex items-center justify-between rounded-lg border border-stone-200 px-3 py-2 text-sm">
@@ -184,7 +223,7 @@ export default async function MeetingDetailPage({
               <li className="text-sm text-stone-500">아직 악보 없음</li>
             )}
           </ul>
-          {(isPrayerLeader || canAdmin) && meeting.prayerLeaderId && (
+          {(isPrayerLeader || canAdmin) && prayerLeaderId && (
             <form
               action={async (fd) => {
                 "use server";

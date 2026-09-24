@@ -3,7 +3,13 @@ import {
   meetingAssetsCol,
   withId,
 } from "@/lib/store/collections";
-import type { LeaderMeeting, MeetingAsset, MeetingAssetKind } from "@/lib/types";
+import type {
+  LeaderMeeting,
+  MeetingAsset,
+  MeetingAssetKind,
+  ServingDutyKey,
+} from "@/lib/types";
+import { meetingDutyUserId } from "@/lib/types";
 
 export async function listMeetings(): Promise<LeaderMeeting[]> {
   const snap = await leaderMeetingsCol.get();
@@ -40,7 +46,30 @@ export async function updateMeetingNotes(meetingId: string, notes: string) {
 }
 
 export async function setMeetingPrayerLeader(meetingId: string, prayerLeaderId: string | null) {
-  await leaderMeetingsCol.doc(meetingId).update({ prayerLeaderId });
+  const result = await setMeetingDutyUser(meetingId, "prayer_meeting_lead", prayerLeaderId);
+  return result;
+}
+
+/** 모임별 섬김 담당 userId. 기도회 인도는 `prayerLeaderId`와 함께 갱신한다. */
+export async function setMeetingDutyUser(
+  meetingId: string,
+  dutyKey: ServingDutyKey,
+  userId: string | null,
+): Promise<{ previousUserId: string | null }> {
+  const doc = await leaderMeetingsCol.doc(meetingId).get();
+  if (!doc.exists) throw new Error("MEETING_NOT_FOUND");
+  const data = doc.data()!;
+  const meeting = { id: doc.id, ...data } as LeaderMeeting;
+  const previousUserId = meetingDutyUserId(meeting, dutyKey);
+
+  const dutyUserIds = { ...(meeting.dutyUserIds ?? {}), [dutyKey]: userId || null };
+  const updates: Record<string, unknown> = { dutyUserIds };
+  if (dutyKey === "prayer_meeting_lead") {
+    updates.prayerLeaderId = userId || null;
+  }
+
+  await leaderMeetingsCol.doc(meetingId).update(updates);
+  return { previousUserId };
 }
 
 export async function listAssetsByMeeting(meetingId: string): Promise<MeetingAsset[]> {

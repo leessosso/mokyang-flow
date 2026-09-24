@@ -47,7 +47,16 @@ NEXT_PUBLIC_FIREBASE_VAPID_KEY="..."
 
 **iOS**: Safari는 **홈 화면에 추가한 PWA**에서만 웹 푸시가 동작합니다. 일반 탭 브라우저만으로는 알림을 받을 수 없습니다.
 
-**Phase 2 (이 PR 범위 밖)**: 기도회 인도·섬김 담당을 로그인 User에 매핑하는 필드를 추가한 뒤, 「본인 담당」 알림에 `pushSubscriptions` 발송 헬퍼를 재사용합니다.
+**Phase 2 (섬김 · 본인 담당)**: `users.servingDutyKeys`에 로그인 사용자별 섬김 슬롯을 매핑하고, `leaderMeetings.dutyUserIds`(기도회 인도는 `prayerLeaderId`와 동기화)로 이번 모임 담당을 지정하면 해당 사용자에게 푸시 → `/meetings/{meetingId}`.
+
+| 항목 | 설명 |
+|------|------|
+| 섬김 슬롯 | `prayer_meeting_lead`, `worship_usher`, `sorting_hat_facilitator` (`src/lib/types.ts` `SERVING_DUTIES`) |
+| 매핑 UI | **가장·임원 관리** → 「섬김 담당 매핑」 |
+| 배정 UI | **리더 모임** 상세 → 「섬김 담당 (이번 모임)」 |
+| 트리거 | 담당 저장 시 담당자(`pushSubscriptions`)에게 「섬김 담당 · …」 푸시 (가족 보고 알림과 별도) |
+
+**Phase 3 (이 PR 범위 밖)**: 출석 리마인더·공지 브로드캐스트 등.
 
 ### 웹 푸시 테스트
 
@@ -55,6 +64,13 @@ NEXT_PUBLIC_FIREBASE_VAPID_KEY="..."
 2. `pastor@church.demo` 로 로그인 → **대시보드** → **알림 켜기** → 브라우저 권한 허용.
 3. `leader1@church.demo` 로 로그인 → **가족 보고** → 1가족 방에 메시지 전송.
 4. 목사 계정 기기/브라우저에 「가족 보고 · …」 푸시가 오고, 클릭 시 `/reports/{groupId}` 로 이동하는지 확인.
+
+**섬김 담당 (Phase 2)**
+
+1. `leader2@church.demo` 로 로그인 → **대시보드** → **알림 켜기**.
+2. `pastor@church.demo` → **가장·임원 관리** → 박가장에 「리더 모임 전 기도회 인도」 체크 후 저장 (시드에 이미 있을 수 있음).
+3. **리더 모임** → `3월 1주 리더 모임` → 「섬김 담당」에서 기도회 인도를 다른 가장으로 바꿔 저장하거나, 미지정이면 박가장으로 지정.
+4. 박가장(또는 새 담당자) 기기에 「섬김 담당 · …」 푸시가 오고 `/meetings/{id}` 로 이동하는지 확인.
 
 ## 요구 사항
 

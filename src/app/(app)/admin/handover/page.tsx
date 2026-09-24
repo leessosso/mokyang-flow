@@ -1,26 +1,27 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { handoverLeader, startNextFamilyTerm, updateOfficerTitle } from "@/app/actions";
+import { handoverLeader, startNextFamilyTerm, updateOfficerTitle, updateUserServingDuties } from "@/app/actions";
 import { Button, Card, CardHeader, Label } from "@/components/ui";
 import { isPastorOrAdmin } from "@/lib/auth";
 import { formatDateKo, termLabel } from "@/lib/format";
 import { listAllGroups, listGroups, listLeaderTermsByGroup } from "@/lib/store/groups";
 import { getCurrentTerm } from "@/lib/store/settings";
 import { listUsersByRole } from "@/lib/store/users";
-import { getUsersByIds } from "@/lib/store/users";
+import { getUsersByIds, listLoginUsersForServing } from "@/lib/store/users";
 import { nextTerm, sameTerm } from "@/lib/term";
-import { OFFICER_TITLES } from "@/lib/types";
+import { OFFICER_TITLES, SERVING_DUTIES } from "@/lib/types";
 
 export default async function HandoverPage() {
   const session = await auth();
   if (!isPastorOrAdmin(session!.user.role)) redirect("/dashboard");
 
-  const [term, groups, allGroups, leaders] = await Promise.all([
+  const [term, groups, allGroups, leaders, loginUsers] = await Promise.all([
     getCurrentTerm(),
     listGroups(),
     listAllGroups(),
     listUsersByRole("LEADER"),
+    listLoginUsersForServing(),
   ]);
   const upcoming = nextTerm(term);
   const pastGroups = allGroups.filter((g) => !sameTerm({ year: g.year, half: g.half }, term));
@@ -106,6 +107,54 @@ export default async function HandoverPage() {
           ))}
           {leaders.length === 0 && (
             <li className="px-4 py-6 text-sm text-stone-500 sm:px-5">등록된 리더 계정이 없습니다.</li>
+          )}
+        </ul>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="섬김 담당 매핑"
+          subtitle="로그인 사용자(목사·관리자·가장)별로 맡을 수 있는 섬김 슬롯을 지정합니다. 리더 모임에서 이번 주 담당을 배정하면 해당 사용자에게 푸시가 갑니다."
+        />
+        <ul className="divide-y divide-stone-100">
+          {loginUsers.map((u) => {
+            const assigned = new Set(u.servingDutyKeys ?? []);
+            return (
+              <li key={u.id} className="px-4 py-4 sm:px-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-stone-900">{u.name}</p>
+                    <p className="text-xs text-stone-500">
+                      {u.email} · {u.role === "PASTOR" ? "목사" : u.role === "ADMIN" ? "관리자" : "가장"}
+                    </p>
+                  </div>
+                  <form
+                    action={async (fd) => {
+                      "use server";
+                      await updateUserServingDuties(u.id, fd);
+                    }}
+                    className="flex flex-col gap-3 sm:items-end"
+                  >
+                    <div className="flex flex-col gap-2">
+                      {SERVING_DUTIES.map((duty) => (
+                        <label key={duty.key} className="flex items-center gap-2 text-sm text-stone-800">
+                          <input
+                            type="checkbox"
+                            name={`duty_${duty.key}`}
+                            defaultChecked={assigned.has(duty.key)}
+                          />
+                          {duty.label}
+                        </label>
+                      ))}
+                    </div>
+                    <Button type="submit" variant="secondary">저장</Button>
+                  </form>
+                </div>
+              </li>
+            );
+          })}
+          {loginUsers.length === 0 && (
+            <li className="px-4 py-6 text-sm text-stone-500 sm:px-5">로그인 계정이 없습니다.</li>
           )}
         </ul>
       </Card>
