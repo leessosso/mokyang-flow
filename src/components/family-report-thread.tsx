@@ -15,12 +15,10 @@ type Message = {
 
 export function FamilyReportThread({
   groupId,
-  groupName,
   members,
   messages,
 }: {
   groupId: string;
-  groupName: string;
   members: { id: string; name: string }[];
   messages: Message[];
 }) {
@@ -44,11 +42,8 @@ export function FamilyReportThread({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-sm text-stone-600">
-        <span className="font-medium text-stone-900">{groupName}</span>에 대한 비공개 대화 — 목사와 가장만 봅니다
-      </p>
-      <div className="max-h-[50vh] space-y-3 overflow-y-auto rounded-xl border border-stone-200 bg-stone-50 p-4">
+    <div className="flex flex-col">
+      <div className="max-h-[60vh] space-y-2 overflow-y-auto bg-stone-50 px-2 py-2 sm:px-3">
         {messages.length === 0 && (
           <p className="text-sm text-stone-500">첫 가족 현황을 남겨 주세요.</p>
         )}
@@ -58,7 +53,7 @@ export function FamilyReportThread({
           return (
             <div
               key={m.id}
-              className={`max-w-[90%] rounded-xl px-3 py-2 text-sm ${
+              className={`w-fit max-w-[96%] rounded-xl px-3 py-2 text-sm ${
                 isPastor
                   ? "ml-auto bg-sky-100 text-sky-950"
                   : "bg-white text-stone-900 shadow-sm"
@@ -80,7 +75,7 @@ export function FamilyReportThread({
           );
         })}
       </div>
-      <form onSubmit={submit} className="space-y-2">
+      <form onSubmit={submit} className="space-y-2 border-t border-stone-100 px-2 py-2 sm:px-3">
         {members.length > 0 && (
           <select
             value={aboutMemberId}

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { FamilyReportThread } from "@/components/family-report-thread";
-import { Card, CardHeader } from "@/components/ui";
+import { Card } from "@/components/ui";
 import { isPastorOrAdmin, leaderCanAccessGroup } from "@/lib/auth";
 import { getGroupById, listMembersByGroup } from "@/lib/store/groups";
 import { getThreadByGroup, listMessagesByThread } from "@/lib/store/reports";
@@ -49,23 +49,20 @@ export default async function FamilyReportPage({
   const leaderName = group.currentLeaderId ? leader.get(group.currentLeaderId)?.name : undefined;
 
   return (
-    <div className="space-y-4">
+    <div className="-mx-4 space-y-3 sm:mx-0">
       {isPastorOrAdmin(user.role) && (
-        <Link href="/reports" className="text-sm text-stone-600 underline">← 가족 보고 목록</Link>
+        <Link href="/reports" className="px-4 text-sm text-stone-600 underline sm:px-0">← 가족 보고 목록</Link>
       )}
-      <Card className="max-w-3xl p-4 sm:p-6">
-        <CardHeader
-          title={group.name}
-          subtitle={`담당 가장: ${leaderName ?? "미배정"}`}
-        />
-        <div className="px-4 pb-4 sm:px-6 sm:pb-6">
-          <FamilyReportThread
-            groupId={group.id}
-            groupName={group.name}
-            members={members.map((m) => ({ id: m.id, name: m.name }))}
-            messages={messages}
-          />
+      <Card className="overflow-hidden rounded-none border-x-0 shadow-none sm:max-w-3xl sm:rounded-xl sm:border-x sm:shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-stone-100 px-3 py-2">
+          <h2 className="text-base font-semibold text-stone-900">{group.name}</h2>
+          <p className="truncate text-xs text-stone-500">가장 {leaderName ?? "미배정"}</p>
         </div>
+        <FamilyReportThread
+          groupId={group.id}
+          members={members.map((m) => ({ id: m.id, name: m.name }))}
+          messages={messages}
+        />
       </Card>
     </div>
   );

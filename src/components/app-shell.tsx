@@ -2,6 +2,7 @@ import { signOut } from "@/auth";
 import type { OfficerTitle, Role } from "@/lib/types";
 import { canManageApp } from "@/lib/types";
 import { DeploySmokeBadge } from "@/components/deploy-smoke-badge";
+import { FitText } from "@/components/fit-text";
 import { AppMain } from "@/components/app-main";
 import { AppNav, type NavItem } from "@/components/app-nav";
 import { SORTING_HAT_ADMIN_PATH, SORTING_HAT_USER_PATH } from "@/lib/sorting-hat";
@@ -79,12 +80,12 @@ export function AppShell({
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="shrink-0 border-b border-stone-200 bg-white lg:hidden">
-          <div className="flex items-center justify-between gap-4 px-4 py-3">
-            <div>
-              <h1 className="text-lg font-semibold text-stone-900">2청년회 운영</h1>
+          <div className="flex items-center justify-between gap-3 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <FitText text="2청년회 운영" />
               <DeploySmokeBadge className="mt-1" />
             </div>
-            <div className="flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 max-w-[46%] items-center gap-2">
               <div className="min-w-0 text-right text-sm">
                 <p className="truncate font-medium">{user.name}</p>
                 <p className="truncate text-stone-500">{user.email}</p>
