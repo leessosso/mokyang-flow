@@ -18,12 +18,14 @@
 
 로그인 사용자(목사·관리자·가장)만 브라우저 푸시를 받을 수 있습니다. 가족원(계정 없음)은 대상이 아니며, 카카오톡 보고와 병행합니다.
 
+같은 계정으로 삼성 인터넷과 설치형 PWA 등에서 각각 알림을 켜면 예전에는 토큰이 두 개 저장되어 동일 공지가 두 번 올 수 있었습니다. 지금은 **사용자당 최신 구독 토큰 하나**만 남기고, 발송·알림 tag로도 한 번만 보이도록 맞춥니다.
+
 | 항목 | 설명 |
 |------|------|
 | PWA | `public/manifest.webmanifest`, `public/icons/*`, 대시보드에서 알림 켜기 |
 | 서비스 워커 | `/firebase-messaging-sw.js` (환경 변수 기반 동적 스크립트) |
-| 구독 저장 | Firestore `pushSubscriptions` — `{ userId, token, createdAt, lastSeenAt, userAgent? }` |
-| 발송 | `firebase-admin` `sendEachForMulticast` (`src/lib/push-notifications.ts`) |
+| 구독 저장 | Firestore `pushSubscriptions` — `{ userId, token, createdAt, lastSeenAt, userAgent? }`. **사용자당 최신 구독 토큰 하나만** 유지(브라우저·PWA 등에서 토큰이 바뀌면 이전 문서는 자동 삭제). |
+| 발송 | `firebase-admin` `sendEachForMulticast` (`src/lib/push-notifications.ts`). 발송 시에도 사용자당 최신 토큰만 사용하고, 동일 이벤트는 `notification.tag`로 겹침을 방지합니다. |
 | 트리거 | 가장(LEADER)이 가족 보고 메시지를 보내면 구독 중인 목사·관리자에게 푸시 → `/reports/{groupId}` |
 
 **Firebase 콘솔 (배포 전)**

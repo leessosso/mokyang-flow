@@ -256,6 +256,7 @@ async function pushServingDutyAssignmentIfChanged(
   try {
     await notifyUsersOfServingDutyAssignment({
       userIds: [newUserId],
+      dutyKey,
       dutyLabel,
       meetingTitle: meeting.title,
       meetingDateIso: meeting.date,
