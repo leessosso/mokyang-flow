@@ -190,13 +190,25 @@ export type AttendanceServiceMark = {
   qr: boolean;
 };
 
-/** 주일 (출석을 여는 단위) */
+/**
+ * 출석 단위.
+ * weekly: 매주 주일. 일정을 등록하지 않아도 그 주 일요일이 항상 있다.
+ * special: 수련회·특별 모임처럼 비정기 출석체크. 임원·목사가 필요할 때만 연다.
+ * kind가 없는 예전 문서는 weekly로 본다.
+ */
+export type AttendanceSundayKind = "weekly" | "special";
+
 export type AttendanceSunday = {
   id: string;
   date: string;
   title: string;
   createdAt: string;
+  kind?: AttendanceSundayKind;
 };
+
+export function isSpecialAttendance(sunday: Pick<AttendanceSunday, "kind">): boolean {
+  return sunday.kind === "special";
+}
 
 /** 가족원 1명의 그 주일 출석. 문서 id는 `{sundayId}_{memberId}`. */
 export type AttendanceMark = {
@@ -220,7 +232,14 @@ export type SurveyQuestion = {
   type: SurveyQuestionType;
 };
 
-/** 이벤트 참여조사 (식수 조사 등 일회성 조사) */
+/**
+ * general: 식수처럼 질문을 직접 짜는 조사.
+ * wednesday: 수요예배 참석예정. 필요할 때만 연다.
+ * kind가 없는 예전 문서는 general로 본다.
+ */
+export type EventSurveyKind = "general" | "wednesday";
+
+/** 이벤트 참여조사 (식수 조사 등 일회성 조사, 수요 참석예정) */
 export type EventSurvey = {
   id: string;
   title: string;
@@ -229,6 +248,7 @@ export type EventSurvey = {
   status: "open" | "closed";
   questions: SurveyQuestion[];
   createdAt: string;
+  kind?: EventSurveyKind;
 };
 
 /** 가족원 1명의 조사 응답. 문서 id는 `{surveyId}_{memberId}`. */

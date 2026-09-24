@@ -138,12 +138,18 @@ export default async function MeetingDetailPage({
             </form>
           )}
 
-          <div className="flex flex-wrap gap-3 border-t border-stone-100 pt-3">
-            <Link href={`${SORTING_HAT_USER_PATH}${hatQuery}`} className="text-sm font-medium text-stone-800 underline">
+          <div className="-mx-4 divide-y divide-stone-100 border-t border-stone-100 sm:-mx-5">
+            <Link
+              href={`${SORTING_HAT_USER_PATH}${hatQuery}`}
+              className="block px-4 py-3 text-sm font-medium text-stone-900 transition hover:bg-stone-50 focus-visible:bg-stone-50 focus-visible:outline-none sm:px-5"
+            >
               배정 모자 열기
             </Link>
             {canAdmin && (
-              <Link href={`${SORTING_HAT_ADMIN_PATH}${hatQuery}`} className="text-sm font-medium text-stone-800 underline">
+              <Link
+                href={`${SORTING_HAT_ADMIN_PATH}${hatQuery}`}
+                className="block px-4 py-3 text-sm font-medium text-stone-900 transition hover:bg-stone-50 focus-visible:bg-stone-50 focus-visible:outline-none sm:px-5"
+              >
                 배정 관리
               </Link>
             )}
@@ -209,16 +215,12 @@ function AssetList({
   return (
     <ul className="space-y-2">
       {assets.map((asset) => (
-        <li
-          key={asset.id}
-          className="flex items-center justify-between rounded-lg border border-stone-200 px-3 py-2 text-sm"
-        >
-          <span>{asset.fileName}</span>
+        <li key={asset.id}>
           <a
             href={`/api/meetings/${meetingId}/assets/${asset.id}`}
-            className="text-sm font-medium text-stone-800 underline"
+            className="block rounded-lg border border-stone-200 px-3 py-2 text-sm transition hover:bg-stone-50"
           >
-            다운로드
+            {asset.fileName}
           </a>
         </li>
       ))}

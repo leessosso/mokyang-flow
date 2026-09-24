@@ -1,6 +1,6 @@
 import { notifyLeadersOfAttendanceReminder } from "@/lib/push-notifications";
-import { kstDateKeyNow } from "@/lib/kst-date";
-import { getAttendanceSundayByKstDateKey } from "@/lib/store/attendance";
+import { isKstSunday, kstDateKeyNow } from "@/lib/kst-date";
+import { ensureWeeklySunday } from "@/lib/store/attendance";
 import {
   getAttendanceReminderState,
   setAttendanceReminderState,
@@ -18,14 +18,15 @@ export type AttendanceReminderCronResult =
 
 /**
  * Vercel Cron(주일 18:00, 서울)에서 호출한다.
- * 목사가 열어 둔 오늘 주일 문서가 있을 때만, 담당 가족이 있는 가장에게 1회 알린다.
+ * 오늘이 일요일이면 그 주일 출석을 만들어 두고, 담당 가족이 있는 가장에게 1회 알린다.
  */
 export async function runAttendanceReminderCron(): Promise<AttendanceReminderCronResult> {
   const todayKey = kstDateKeyNow();
-  const sunday = await getAttendanceSundayByKstDateKey(todayKey);
-  if (!sunday) {
-    return { status: "skipped", reason: `no_attendance_sunday_for_${todayKey}` };
+  if (!isKstSunday()) {
+    return { status: "skipped", reason: `not_sunday_${todayKey}` };
   }
+
+  const sunday = await ensureWeeklySunday(todayKey);
 
   const prev = await getAttendanceReminderState();
   if (prev?.lastRemindedSundayId === sunday.id) {

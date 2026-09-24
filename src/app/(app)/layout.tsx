@@ -9,7 +9,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session?.user) redirect("/login");
 
   const full = await getUserById(session.user.id);
-  const leadsFamily = full?.role === "LEADER" ? !!(await getGroupByCurrentLeader(full.id)) : false;
+  const myGroup = full?.role === "LEADER" ? await getGroupByCurrentLeader(full.id) : null;
 
   return (
     <AppShell
@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         role: session.user.role,
         officerTitle: full?.officerTitle ?? null,
       }}
-      leadsFamily={leadsFamily}
+      familyReportHref={myGroup ? `/reports/${myGroup.id}` : "/reports"}
     >
       {children}
     </AppShell>

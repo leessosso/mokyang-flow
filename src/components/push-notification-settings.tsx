@@ -112,14 +112,7 @@ export function PushNotificationSettings({
   }
 
   if (status === "unconfigured") {
-    return (
-      <Card>
-        <CardHeader title="웹 푸시 알림" subtitle="가족 보고 등 중요 알림 (로그인 사용자)" />
-        <p className="px-4 py-3 text-sm text-stone-500 sm:px-5">
-          서버에 `NEXT_PUBLIC_FIREBASE_*`와 VAPID 키가 설정되면 이 기기에서 알림을 켤 수 있습니다.
-        </p>
-      </Card>
-    );
+    return null;
   }
 
   if (status === "unsupported") {

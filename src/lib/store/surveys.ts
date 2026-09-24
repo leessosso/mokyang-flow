@@ -1,5 +1,5 @@
 import { eventResponsesCol, eventSurveysCol, withId } from "@/lib/store/collections";
-import type { EventResponse, EventSurvey, SurveyQuestion } from "@/lib/types";
+import type { EventResponse, EventSurvey, EventSurveyKind, SurveyQuestion } from "@/lib/types";
 
 function responseId(surveyId: string, memberId: string) {
   return `${surveyId}_${memberId}`;
@@ -23,6 +23,7 @@ export async function createEventSurvey(data: {
   eventDate: string;
   description?: string | null;
   questions: SurveyQuestion[];
+  kind?: EventSurveyKind;
 }): Promise<EventSurvey> {
   const ref = eventSurveysCol.doc();
   const survey: Omit<EventSurvey, "id"> = {
@@ -32,6 +33,7 @@ export async function createEventSurvey(data: {
     status: "open",
     questions: data.questions,
     createdAt: new Date().toISOString(),
+    kind: data.kind ?? "general",
   };
   await ref.set(survey);
   return { id: ref.id, ...survey };

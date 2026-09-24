@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { isPastorOrAdmin } from "@/lib/auth";
 import { Card } from "@/components/ui";
@@ -9,6 +10,11 @@ import { getUsersByIds } from "@/lib/store/users";
 export default async function ReportsPage() {
   const session = await auth();
   const user = session!.user;
+
+  if (!isPastorOrAdmin(user.role)) {
+    const mine = await getGroupByCurrentLeader(user.id);
+    if (mine) redirect(`/reports/${mine.id}`);
+  }
 
   const groups = isPastorOrAdmin(user.role)
     ? await listGroups()
@@ -44,7 +50,7 @@ export default async function ReportsPage() {
           {rows.map(({ group, memberCount, latest }) => (
             <li key={group.id}>
               <Link href={`/reports/${group.id}`} className="block h-full">
-                <Card className="h-full transition hover:border-stone-300">
+                <Card className="h-full transition hover:border-stone-300 hover:bg-stone-50">
                   <div className="px-4 py-4 sm:px-5">
                     <p className="font-medium text-stone-900">
                       {group.name}{" "}

@@ -5,11 +5,12 @@ import { Button, Card, CardHeader, Label } from "@/components/ui";
 import { currentUserCanManageApp } from "@/lib/auth";
 import { formatDateKo } from "@/lib/format";
 import {
-  getAttendanceSundayById,
   listMarksBySunday,
   markMapByMemberId,
+  resolveAttendanceSunday,
   summarizeMarks,
 } from "@/lib/store/attendance";
+import { isSpecialAttendance } from "@/lib/types";
 import { getGroupByCurrentLeader, listGroups, listMembersByGroup } from "@/lib/store/groups";
 import { importAttendanceQr } from "@/app/actions";
 
@@ -25,8 +26,11 @@ export default async function AttendanceSundayPage({
   const session = await auth();
   const user = session!.user;
 
-  const sunday = await getAttendanceSundayById(sundayId);
+  const sunday = await resolveAttendanceSunday(sundayId);
   if (!sunday) notFound();
+  if (sunday.id !== sundayId) redirect(`/attendance/${sunday.id}`);
+
+  const special = isSpecialAttendance(sunday);
 
   if (!(await currentUserCanManageApp())) {
     const myGroup = await getGroupByCurrentLeader(user.id);
@@ -56,7 +60,7 @@ export default async function AttendanceSundayPage({
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/attendance" className="text-sm text-stone-600 underline">← 주일 목록</Link>
+        <Link href="/attendance" className="text-sm text-stone-600 underline">← 출석</Link>
         <h2 className="mt-2 text-xl font-semibold">{sunday.title}</h2>
         <p className="text-sm text-stone-600">{formatDateKo(sunday.date)}</p>
       </div>
@@ -75,6 +79,7 @@ export default async function AttendanceSundayPage({
         </Card>
       )}
 
+      {!special && (
       <Card>
         <CardHeader title="QR 명단 가져오기" subtitle="CSV 또는 xlsx 파일의 첫 열에서 이름을 읽습니다" />
         <form
@@ -98,45 +103,64 @@ export default async function AttendanceSundayPage({
           <Button type="submit">반영</Button>
         </form>
       </Card>
+      )}
 
       <Card>
-        <CardHeader title="가족별 합계" subtitle="가족을 눌러 명단을 수정합니다" />
+        <CardHeader
+          title="가족별 합계"
+          subtitle={special ? "가족을 눌러 참석을 체크합니다" : "가족을 눌러 명단을 수정합니다"}
+        />
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className={`w-full text-sm ${special ? "" : "min-w-[640px]"}`}>
             <thead>
               <tr className="border-b border-stone-100 text-left text-stone-500">
                 <th className="px-4 py-2 sm:px-5">가족</th>
                 <th className="px-2 py-2">인원</th>
-                <th className="px-2 py-2">1-3부 참석</th>
-                <th className="px-2 py-2">1-3부 방송</th>
-                <th className="px-2 py-2">1-3부 QR</th>
-                <th className="px-2 py-2">4부 참석</th>
-                <th className="px-2 py-2">4부 방송</th>
-                <th className="px-2 py-2">4부 QR</th>
-                <th className="px-2 py-2">가족모임</th>
+                {special ? (
+                  <th className="px-2 py-2">참석</th>
+                ) : (
+                  <>
+                    <th className="px-2 py-2">1-3부 참석</th>
+                    <th className="px-2 py-2">1-3부 방송</th>
+                    <th className="px-2 py-2">1-3부 QR</th>
+                    <th className="px-2 py-2">4부 참석</th>
+                    <th className="px-2 py-2">4부 방송</th>
+                    <th className="px-2 py-2">4부 QR</th>
+                    <th className="px-2 py-2">가족모임</th>
+                  </>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
               {rows.map(({ group, totals }) => (
-                <tr key={group.id}>
+                <tr key={group.id} className="relative hover:bg-stone-50">
                   <td className="px-4 py-2 sm:px-5">
-                    <Link href={`/attendance/${sundayId}/${group.id}`} className="font-medium underline">
+                    <Link
+                      href={`/attendance/${sunday.id}/${group.id}`}
+                      className="font-medium after:absolute after:inset-0"
+                    >
                       {group.name}
                     </Link>
                   </td>
                   <td className="px-2 py-2">{totals.memberCount}</td>
-                  <td className="px-2 py-2">{totals.s13.present}</td>
-                  <td className="px-2 py-2">{totals.s13.broadcast}</td>
-                  <td className="px-2 py-2">{totals.s13.qr}</td>
-                  <td className="px-2 py-2">{totals.s4.present}</td>
-                  <td className="px-2 py-2">{totals.s4.broadcast}</td>
-                  <td className="px-2 py-2">{totals.s4.qr}</td>
-                  <td className="px-2 py-2">{totals.familyMeeting}</td>
+                  {special ? (
+                    <td className="px-2 py-2">{totals.s13.present}</td>
+                  ) : (
+                    <>
+                      <td className="px-2 py-2">{totals.s13.present}</td>
+                      <td className="px-2 py-2">{totals.s13.broadcast}</td>
+                      <td className="px-2 py-2">{totals.s13.qr}</td>
+                      <td className="px-2 py-2">{totals.s4.present}</td>
+                      <td className="px-2 py-2">{totals.s4.broadcast}</td>
+                      <td className="px-2 py-2">{totals.s4.qr}</td>
+                      <td className="px-2 py-2">{totals.familyMeeting}</td>
+                    </>
+                  )}
                 </tr>
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-6 text-center text-stone-500">
+                  <td colSpan={special ? 3 : 9} className="px-4 py-6 text-center text-stone-500">
                     표시할 가족이 없습니다.
                   </td>
                 </tr>

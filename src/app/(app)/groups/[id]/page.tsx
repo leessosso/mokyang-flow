@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { auth } from "@/auth";
 import { assignMemberToGroup, createMember } from "@/app/actions";
 import { Button, Card, CardHeader, Input } from "@/components/ui";
 import { currentUserCanManageApp } from "@/lib/auth";
@@ -19,7 +18,6 @@ export default async function GroupDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await auth();
   const canAdmin = await currentUserCanManageApp();
 
   const group = await getGroupById(id);
@@ -52,18 +50,15 @@ export default async function GroupDetailPage({
         <CardHeader title="가족원" />
         <ul className="divide-y divide-stone-100">
           {members.map((m) => (
-            <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
-              <span className="font-medium">{m.name}</span>
-              <Link href={`/reports/${id}`} className="text-sm text-stone-700 underline">
-                가족 보고
-              </Link>
+            <li key={m.id} className="px-4 py-3 font-medium sm:px-5">
+              {m.name}
             </li>
           ))}
           {members.length === 0 && (
             <li className="px-4 py-6 text-sm text-stone-500 sm:px-5">가족원이 없습니다.</li>
           )}
         </ul>
-        {(canAdmin || group.currentLeaderId === session!.user.id) && (
+        {canAdmin && (
           <form
             action={async (fd) => {
               "use server";
@@ -107,6 +102,15 @@ export default async function GroupDetailPage({
           </ul>
         </Card>
       )}
+
+      <Link
+        href={`/reports/${id}`}
+        className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+      >
+        <Card className="h-full transition hover:border-stone-300 hover:bg-stone-50">
+          <CardHeader title="가족 보고" subtitle="목사와 가장이 나누는 방" />
+        </Card>
+      </Link>
 
       <Card>
         <CardHeader title="가장 이력" subtitle="상반기·하반기 가장 구성" />

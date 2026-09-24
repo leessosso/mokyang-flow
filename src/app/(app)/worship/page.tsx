@@ -57,13 +57,15 @@ export default async function WorshipListPage() {
         <CardHeader title="예배 목록" />
         <ul className="divide-y divide-stone-100">
           {services.map((s, i) => (
-            <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
-              <div>
+            <li key={s.id}>
+              <Link
+                href={`/worship/${s.id}`}
+                className="block px-4 py-3 transition hover:bg-stone-50 focus-visible:bg-stone-50 focus-visible:outline-none sm:px-5"
+              >
                 <p className="font-medium">{s.title}</p>
-                <p className="text-sm text-stone-500">{formatDateKo(s.date)}</p>
-              </div>
-              <Link href={`/worship/${s.id}`} className="text-sm font-medium underline">
-                배치 ({assignmentCounts[i]}가족)
+                <p className="text-sm text-stone-500">
+                  {formatDateKo(s.date)} · {assignmentCounts[i]}가족
+                </p>
               </Link>
             </li>
           ))}

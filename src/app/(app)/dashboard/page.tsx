@@ -3,10 +3,10 @@ import { auth } from "@/auth";
 import { Card, CardHeader } from "@/components/ui";
 import { getCurrentUser, isPastorOrAdmin } from "@/lib/auth";
 import { formatDateTimeKo, roleLabel } from "@/lib/format";
-import { getGroupByCurrentLeader, listGroups, listMembersByGroup } from "@/lib/store/groups";
+import { getGroupByCurrentLeader, listGroups } from "@/lib/store/groups";
 import { listMeetings } from "@/lib/store/meetings";
 import { countThreadsWithMessages } from "@/lib/store/reports";
-import { getLatestAttendanceSunday, listMarksBySunday } from "@/lib/store/attendance";
+import { listMarksBySunday, listWeeklySundaySlots } from "@/lib/store/attendance";
 import {
   SORTING_HAT_ADMIN_PATH,
   SORTING_HAT_USER_PATH,
@@ -24,12 +24,7 @@ export default async function DashboardPage() {
 
   const meetings = (await listMeetings()).slice(0, 3);
 
-  let myGroup = null;
-  let myMemberCount = 0;
-  if (user.role === "LEADER") {
-    myGroup = await getGroupByCurrentLeader(user.id);
-    if (myGroup) myMemberCount = (await listMembersByGroup(myGroup.id)).length;
-  }
+  const myGroup = user.role === "LEADER" ? await getGroupByCurrentLeader(user.id) : null;
 
   const attendanceGroups = manages
     ? await listGroups()
@@ -45,10 +40,11 @@ export default async function DashboardPage() {
 
   const reportCount = await countThreadsWithMessages(reportGroups.map((g) => g.id));
 
-  const latestSunday = await getLatestAttendanceSunday();
+  const currentWeek = (await listWeeklySundaySlots(1))[0] ?? null;
+  const latestSunday = currentWeek?.sunday ?? null;
   let missingAttendanceCount = 0;
   if (latestSunday) {
-    const marks = await listMarksBySunday(latestSunday.id);
+    const marks = currentWeek?.persisted ? await listMarksBySunday(latestSunday.id) : [];
     const groupIdsWithMarks = new Set(marks.map((m) => m.groupId));
     missingAttendanceCount = attendanceGroups.filter((g) => !groupIdsWithMarks.has(g.id)).length;
   }
@@ -81,29 +77,17 @@ export default async function DashboardPage() {
       />
 
       <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-        {myGroup && (
-          <Card>
-            <CardHeader title={`내 가족: ${myGroup.name}`} subtitle={myGroup.description ?? undefined} />
-            <div className="px-4 py-3 sm:px-5">
-              <p className="text-sm text-stone-600">가족원 {myMemberCount}명</p>
-              <Link href="/my-group" className="mt-2 inline-block text-sm font-medium text-stone-800 underline">
-                가족원·가족 보고 관리
-              </Link>
-            </div>
-          </Card>
-        )}
-
-        <Card className={myGroup ? "lg:col-span-1 xl:col-span-1" : "lg:col-span-1"}>
+        <Card>
           <CardHeader title="최근 리더 모임" subtitle="기도회 · 교안 나눔 · 해설 · 광고" />
           <ul className="divide-y divide-stone-100">
             {meetings.map((m) => (
-              <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
-                <div>
+              <li key={m.id}>
+                <Link
+                  href={`/meetings/${m.id}`}
+                  className="block px-4 py-3 transition hover:bg-stone-50 focus-visible:bg-stone-50 focus-visible:outline-none sm:px-5"
+                >
                   <p className="font-medium text-stone-900">{m.title}</p>
                   <p className="text-sm text-stone-500">{formatDateTimeKo(m.date)}</p>
-                </div>
-                <Link href={`/meetings/${m.id}`} className="text-sm text-stone-700 underline">
-                  보기
                 </Link>
               </li>
             ))}
@@ -115,12 +99,18 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader title="배정 모자" subtitle="리더 모임 조 배정·자리 뽑기" />
-          <div className="flex flex-wrap gap-3 px-4 py-3 sm:px-5">
-            <Link href={SORTING_HAT_USER_PATH} className="text-sm font-medium text-stone-800 underline">
+          <div className="divide-y divide-stone-100">
+            <Link
+              href={SORTING_HAT_USER_PATH}
+              className="block px-4 py-3 text-sm font-medium text-stone-900 transition hover:bg-stone-50 focus-visible:bg-stone-50 focus-visible:outline-none sm:px-5"
+            >
               조 배정·자리 뽑기
             </Link>
             {manages && (
-              <Link href={SORTING_HAT_ADMIN_PATH} className="text-sm font-medium text-stone-800 underline">
+              <Link
+                href={SORTING_HAT_ADMIN_PATH}
+                className="block px-4 py-3 text-sm font-medium text-stone-900 transition hover:bg-stone-50 focus-visible:bg-stone-50 focus-visible:outline-none sm:px-5"
+              >
                 배정 관리
               </Link>
             )}

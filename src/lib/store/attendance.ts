@@ -1,4 +1,9 @@
-import { kstDateKeyFromIso } from "@/lib/kst-date";
+import {
+  dateKeyToKstNoonIso,
+  kstDateKeyFromIso,
+  recentSundayDateKeys,
+  sundayTitleFromDateKey,
+} from "@/lib/kst-date";
 import {
   attendanceMarksCol,
   attendanceSundaysCol,
@@ -10,6 +15,14 @@ import type {
   AttendanceStatus,
   AttendanceSunday,
 } from "@/lib/types";
+
+/** 목록에 항상 보여주는 최근 주일 수. 반년 정도. */
+export const RECENT_WEEKLY_COUNT = 26;
+
+export type WeeklySundaySlot = {
+  sunday: AttendanceSunday;
+  persisted: boolean;
+};
 
 const EMPTY_SERVICE_MARK: AttendanceServiceMark = { status: "none", qr: false };
 
@@ -30,24 +43,108 @@ export async function getAttendanceSundayById(id: string): Promise<AttendanceSun
   return { id: doc.id, ...doc.data()! };
 }
 
-export async function getLatestAttendanceSunday(): Promise<AttendanceSunday | null> {
-  const sundays = await listAttendanceSundays();
-  return sundays[0] ?? null;
+export function weeklySundayDocumentId(dateKey: string): string {
+  return `weekly_${dateKey}`;
 }
 
-/** 서울 달력 날짜(YYYY-MM-DD)와 일치하는 주일 출석 문서. */
-export async function getAttendanceSundayByKstDateKey(
+function dateKeyFromWeeklyId(id: string): string | null {
+  if (!id.startsWith("weekly_")) return null;
+  const dateKey = id.slice("weekly_".length);
+  return /^\d{4}-\d{2}-\d{2}$/.test(dateKey) ? dateKey : null;
+}
+
+function virtualWeeklySunday(dateKey: string): AttendanceSunday {
+  return {
+    id: weeklySundayDocumentId(dateKey),
+    date: dateKeyToKstNoonIso(dateKey),
+    title: sundayTitleFromDateKey(dateKey),
+    kind: "weekly",
+    createdAt: dateKeyToKstNoonIso(dateKey),
+  };
+}
+
+/** 그 일요일의 정기 출석 문서. 비정기 출석체크는 제외한다. */
+export async function getWeeklySundayByDateKey(
   dateKey: string,
 ): Promise<AttendanceSunday | null> {
   const sundays = await listAttendanceSundays();
-  return sundays.find((s) => kstDateKeyFromIso(s.date) === dateKey) ?? null;
+  return (
+    sundays.find((s) => s.kind !== "special" && kstDateKeyFromIso(s.date) === dateKey) ?? null
+  );
 }
 
-export async function createAttendanceSunday(date: string, title: string): Promise<AttendanceSunday> {
-  const ref = attendanceSundaysCol.doc();
+/**
+ * 최근 주일은 문서가 없어도 항상 돌려준다.
+ * 그보다 오래된 주일은 이미 출석이 있는 문서만 포함한다.
+ */
+export async function listWeeklySundaySlots(
+  count = RECENT_WEEKLY_COUNT,
+): Promise<WeeklySundaySlot[]> {
+  const stored = (await listAttendanceSundays()).filter((s) => s.kind !== "special");
+  const byDate = new Map<string, AttendanceSunday>();
+  for (const sunday of stored) {
+    const dateKey = kstDateKeyFromIso(sunday.date);
+    if (!byDate.has(dateKey)) byDate.set(dateKey, sunday);
+  }
+
+  const keys = new Set<string>([...recentSundayDateKeys(count), ...byDate.keys()]);
+  return [...keys]
+    .sort((a, b) => b.localeCompare(a))
+    .map((dateKey) => {
+      const sunday = byDate.get(dateKey);
+      if (sunday) return { sunday, persisted: true };
+      return { sunday: virtualWeeklySunday(dateKey), persisted: false };
+    });
+}
+
+export async function listSpecialSundays(): Promise<AttendanceSunday[]> {
+  const sundays = await listAttendanceSundays();
+  return sundays.filter((s) => s.kind === "special");
+}
+
+/** 문서가 없으면 만들어, 가장이 그 주일 출석을 바로 입력할 수 있게 한다. */
+export async function ensureWeeklySunday(dateKey: string): Promise<AttendanceSunday> {
+  const existing = await getWeeklySundayByDateKey(dateKey);
+  if (existing) return existing;
+
+  const id = weeklySundayDocumentId(dateKey);
+  const ref = attendanceSundaysCol.doc(id);
+  const snap = await ref.get();
+  if (snap.exists) return { id: snap.id, ...snap.data()! };
+
   const sunday: Omit<AttendanceSunday, "id"> = {
-    date,
-    title,
+    date: dateKeyToKstNoonIso(dateKey),
+    title: sundayTitleFromDateKey(dateKey),
+    kind: "weekly",
+    createdAt: new Date().toISOString(),
+  };
+  await ref.set(sunday);
+  return { id, ...sunday };
+}
+
+/**
+ * 목록의 가상 id(`weekly_YYYY-MM-DD`)로 들어와도 그 주일 문서를 연다.
+ * 같은 날짜에 예전 문서가 있으면 그 문서를 쓴다.
+ */
+export async function resolveAttendanceSunday(id: string): Promise<AttendanceSunday | null> {
+  const direct = await getAttendanceSundayById(id);
+  if (direct) return direct;
+  const dateKey = dateKeyFromWeeklyId(id);
+  if (!dateKey) return null;
+  return ensureWeeklySunday(dateKey);
+}
+
+/** 비정기 출석체크. 매주 주일 출석과 별도로, 필요할 때만 만든다. */
+export async function createSpecialAttendance(
+  date: string,
+  title: string,
+): Promise<AttendanceSunday> {
+  const ref = attendanceSundaysCol.doc();
+  const dateKey = date.slice(0, 10);
+  const sunday: Omit<AttendanceSunday, "id"> = {
+    date: dateKeyToKstNoonIso(dateKey),
+    title: title.trim() || "출석체크",
+    kind: "special",
     createdAt: new Date().toISOString(),
   };
   await ref.set(sunday);

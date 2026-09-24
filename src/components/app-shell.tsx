@@ -6,21 +6,29 @@ import { AppMain } from "@/components/app-main";
 import { AppNav, type NavItem } from "@/components/app-nav";
 import { SORTING_HAT_ADMIN_PATH, SORTING_HAT_USER_PATH } from "@/lib/sorting-hat";
 
-function navFor(user: { role: Role; officerTitle: OfficerTitle | null }, leadsFamily: boolean): NavItem[] {
+function navFor(
+  user: { role: Role; officerTitle: OfficerTitle | null },
+  familyReportHref: string,
+): NavItem[] {
   const manages = canManageApp(user);
-  const items: NavItem[] = [{ href: "/dashboard", label: "대시보드" }];
-  if (leadsFamily) items.push({ href: "/my-group", label: "내 가족" });
-  if (manages) items.push({ href: "/groups", label: "가족" });
-  items.push(
+  const items: NavItem[] = [
+    { href: "/dashboard", label: "대시보드" },
     { href: "/attendance", label: "출석" },
     { href: "/surveys", label: "참여조사" },
-    { href: "/announcements", label: "공지" },
     { href: "/meetings", label: "리더 모임" },
-    { href: "/reports", label: "가족 보고" },
+    { href: familyReportHref, label: "가족 보고" },
+  ];
+  items.push(
+    { href: "/announcements", label: "공지" },
+    { href: SORTING_HAT_USER_PATH, label: "배정 모자" },
   );
-  if (manages) items.push({ href: "/admin/handover", label: "가장·임원 관리" });
-  items.push({ href: SORTING_HAT_USER_PATH, label: "배정 모자" });
-  if (manages) items.push({ href: SORTING_HAT_ADMIN_PATH, label: "배정 관리" });
+  if (manages) {
+    items.push(
+      { href: "/groups", label: "가족" },
+      { href: "/admin/handover", label: "가장·임원 관리" },
+      { href: SORTING_HAT_ADMIN_PATH, label: "배정 관리" },
+    );
+  }
   return items;
 }
 
@@ -46,13 +54,13 @@ function LogoutButton({ className }: { className?: string }) {
 export function AppShell({
   children,
   user,
-  leadsFamily,
+  familyReportHref,
 }: {
   children: React.ReactNode;
   user: { name: string; role: Role; email: string; officerTitle: OfficerTitle | null };
-  leadsFamily: boolean;
+  familyReportHref: string;
 }) {
-  const nav = navFor(user, leadsFamily);
+  const nav = navFor(user, familyReportHref);
 
   return (
     <div className="flex h-full min-h-screen flex-col bg-stone-50 text-stone-900 lg:flex-row">

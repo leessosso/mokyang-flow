@@ -42,7 +42,7 @@ import {
 import { sendFamilyMessage } from "@/lib/store/reports";
 import { assignGroupSeating as assignGroupSeatingStore, createWorshipService as createWorshipServiceStore } from "@/lib/store/worship";
 import {
-  createAttendanceSunday as createAttendanceSundayStore,
+  createSpecialAttendance as createSpecialAttendanceStore,
   importQrNames,
   saveAttendanceMarks as saveAttendanceMarksStore,
   type SaveMarkEntry,
@@ -213,7 +213,6 @@ export async function startNextFamilyTerm() {
   revalidatePath("/groups");
   revalidatePath("/reports");
   revalidatePath("/dashboard");
-  revalidatePath("/my-group");
   return { ok: true, term: next };
 }
 
@@ -405,7 +404,6 @@ export async function createGroup(name: string, leaderId: string) {
   await handoverGroupLeader(group.id, leader.id);
   revalidatePath("/groups");
   revalidatePath("/dashboard");
-  revalidatePath("/my-group");
   revalidatePath("/admin/handover");
   return { ok: true };
 }
@@ -419,15 +417,9 @@ export async function assignMemberToGroup(memberId: string, groupId: string) {
 }
 
 export async function createMember(groupId: string, name: string, phone?: string) {
-  const user = await sessionUser();
-  const actor = await getUserById(user.id);
-  if (!actor || !canManageApp(actor)) {
-    const ok = await leaderCanAccessGroup(user.id, groupId);
-    if (!ok) return { error: "권한이 없습니다." };
-  }
+  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
   await createMemberStore(groupId, name, phone || null);
   revalidatePath(`/groups/${groupId}`);
-  revalidatePath("/my-group");
   return { ok: true };
 }
 
@@ -436,11 +428,12 @@ export async function setGroupLeader(groupId: string, leaderId: string) {
   return handoverLeader(groupId, leaderId);
 }
 
-/** 임원·목사가 새 주일을 연다. */
-export async function createAttendanceSunday(date: string, title: string) {
+/** 임원·목사가 비정기 출석체크를 연다. 매주 주일 출석은 여기서 만들지 않는다. */
+export async function createSpecialAttendance(date: string, title: string) {
   if (!(await requireAppManager())) return { error: "권한이 없습니다." };
+  if (!date) return { error: "날짜를 입력해 주세요." };
 
-  const sunday = await createAttendanceSundayStore(new Date(date).toISOString(), title || "주일예배");
+  const sunday = await createSpecialAttendanceStore(date, title);
   revalidatePath("/attendance");
   return { ok: true, id: sunday.id };
 }
@@ -509,6 +502,26 @@ export async function importAttendanceQr(sundayId: string, service: "s13" | "s4"
     qrUnmatched: result.unmatchedNames.join(","),
   });
   redirect(`/attendance/${sundayId}?${params.toString()}`);
+}
+
+/** 수요예배 참석예정. 질문 없이 가족원마다 참석 예정만 받는다. */
+export async function createWednesdaySurvey(formData: FormData) {
+  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
+
+  const eventDate = formData.get("eventDate") as string;
+  const title = ((formData.get("title") as string) || "").trim() || "수요예배 참석예정";
+  const description = ((formData.get("description") as string) || "").trim();
+  if (!eventDate) return { error: "날짜를 입력해 주세요." };
+
+  const survey = await createEventSurveyStore({
+    title,
+    eventDate: new Date(eventDate).toISOString(),
+    description: description || null,
+    kind: "wednesday",
+    questions: [{ id: "plan", label: "참석 예정", type: "yesno" }],
+  });
+  revalidatePath("/surveys");
+  return { ok: true, id: survey.id };
 }
 
 /** 목사/관리자가 참여조사를 만든다. q1_label..q6_label / q1_type..q6_type 필드로 질문을 받는다. */

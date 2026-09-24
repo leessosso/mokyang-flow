@@ -50,7 +50,9 @@ export default async function FamilyReportPage({
 
   return (
     <div className="space-y-4">
-      <Link href="/reports" className="text-sm text-stone-600 underline">← 가족 보고 목록</Link>
+      {isPastorOrAdmin(user.role) && (
+        <Link href="/reports" className="text-sm text-stone-600 underline">← 가족 보고 목록</Link>
+      )}
       <Card className="max-w-3xl p-4 sm:p-6">
         <CardHeader
           title={group.name}

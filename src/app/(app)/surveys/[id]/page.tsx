@@ -92,9 +92,12 @@ export default async function SurveyDetailPage({
             </thead>
             <tbody className="divide-y divide-stone-100">
               {rows.map(({ group, totals }) => (
-                <tr key={group.id}>
+                <tr key={group.id} className="relative hover:bg-stone-50">
                   <td className="px-4 py-2 sm:px-5">
-                    <Link href={`/surveys/${id}/${group.id}`} className="font-medium underline">
+                    <Link
+                      href={`/surveys/${id}/${group.id}`}
+                      className="font-medium after:absolute after:inset-0"
+                    >
                       {group.name}
                     </Link>
                   </td>

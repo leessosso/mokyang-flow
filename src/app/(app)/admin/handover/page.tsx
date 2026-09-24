@@ -218,12 +218,14 @@ export default async function HandoverPage() {
           <CardHeader title="지난 학기 가족" subtitle="열람만 가능합니다" />
           <ul className="divide-y divide-stone-100 text-sm">
             {pastWithHeads.map((g) => (
-              <li key={g.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
-                <span>
+              <li key={g.id}>
+                <Link
+                  href={`/groups/${g.id}`}
+                  className="block px-4 py-3 transition hover:bg-stone-50 focus-visible:bg-stone-50 focus-visible:outline-none sm:px-5"
+                >
                   {g.name} · {termLabel({ year: g.year, half: g.half })} · 가장{" "}
                   {(g.currentLeaderId && leaderNames.get(g.currentLeaderId)?.name) ?? "미배정"}
-                </span>
-                <Link href={`/groups/${g.id}`} className="font-medium text-stone-800 underline">보기</Link>
+                </Link>
               </li>
             ))}
           </ul>

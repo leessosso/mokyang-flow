@@ -86,13 +86,13 @@ function Section({
       ) : (
         <ul className="divide-y divide-stone-100">
           {items.map((m) => (
-            <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
-              <div>
+            <li key={m.id}>
+              <Link
+                href={`/meetings/${m.id}`}
+                className="block px-4 py-3 transition hover:bg-stone-50 focus-visible:bg-stone-50 focus-visible:outline-none sm:px-5"
+              >
                 <p className="font-medium">{m.title}</p>
                 <p className="text-sm text-stone-500">{formatDateTimeKo(m.date)}</p>
-              </div>
-              <Link href={`/meetings/${m.id}`} className="text-sm font-medium text-stone-800 underline">
-                상세 보기
               </Link>
             </li>
           ))}

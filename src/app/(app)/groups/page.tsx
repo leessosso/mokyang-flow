@@ -84,22 +84,25 @@ export default async function GroupsPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {groups.map((g) => (
-          <Card key={g.id}>
-            <CardHeader title={g.name} />
-            <div className="space-y-2 px-4 py-3 text-sm sm:px-5">
-              <p>
-                <span className="text-stone-500">가장:</span>{" "}
-                {(g.currentLeaderId && leaders.get(g.currentLeaderId)?.name) ?? "미배정"}
-              </p>
-              <p>
-                <span className="text-stone-500">가족원:</span>{" "}
-                {members.filter((m) => m.groupId === g.id).length}명
-              </p>
-              <Link href={`/groups/${g.id}`} className="inline-block font-medium text-stone-800 underline">
-                상세 보기
-              </Link>
-            </div>
-          </Card>
+          <Link
+            key={g.id}
+            href={`/groups/${g.id}`}
+            className="block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+          >
+            <Card className="h-full transition hover:border-stone-300 hover:bg-stone-50">
+              <CardHeader title={g.name} />
+              <div className="space-y-2 px-4 py-3 text-sm sm:px-5">
+                <p>
+                  <span className="text-stone-500">가장:</span>{" "}
+                  {(g.currentLeaderId && leaders.get(g.currentLeaderId)?.name) ?? "미배정"}
+                </p>
+                <p>
+                  <span className="text-stone-500">가족원:</span>{" "}
+                  {members.filter((m) => m.groupId === g.id).length}명
+                </p>
+              </div>
+            </Card>
+          </Link>
         ))}
         {groups.length === 0 && (
           <p className="text-sm text-stone-500">이번 학기에 구성된 가족이 없습니다.</p>

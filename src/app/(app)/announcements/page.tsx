@@ -35,19 +35,19 @@ export default async function AnnouncementsPage() {
           <CardHeader title="임시저장" />
           <ul className="divide-y divide-stone-100">
             {drafts.map((a) => (
-              <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
-                <div>
-                  <p className="font-medium">{a.title}</p>
-                  <p className="text-sm text-stone-500">
-                    {audienceLabel(a.audience)} · {formatDateTimeKo(a.createdAt)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
+              <li key={a.id}>
+                <Link
+                  href={`/announcements/${a.id}`}
+                  className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 transition hover:bg-stone-50 focus-visible:bg-stone-50 focus-visible:outline-none sm:px-5"
+                >
+                  <div>
+                    <p className="font-medium">{a.title}</p>
+                    <p className="text-sm text-stone-500">
+                      {audienceLabel(a.audience)} · {formatDateTimeKo(a.createdAt)}
+                    </p>
+                  </div>
                   <Badge tone="neutral">임시저장</Badge>
-                  <Link href={`/announcements/${a.id}`} className="text-sm font-medium underline">
-                    편집
-                  </Link>
-                </div>
+                </Link>
               </li>
             ))}
           </ul>
@@ -58,16 +58,16 @@ export default async function AnnouncementsPage() {
         <CardHeader title="발송 내역" />
         <ul className="divide-y divide-stone-100">
           {sent.map((a) => (
-            <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
-              <div>
+            <li key={a.id}>
+              <Link
+                href={`/announcements/${a.id}`}
+                className="block px-4 py-3 transition hover:bg-stone-50 focus-visible:bg-stone-50 focus-visible:outline-none sm:px-5"
+              >
                 <p className="font-medium">{a.title}</p>
                 <p className="text-sm text-stone-500">
                   {audienceLabel(a.audience)}
                   {a.sentAt ? ` · ${formatDateTimeKo(a.sentAt)}` : ""}
                 </p>
-              </div>
-              <Link href={`/announcements/${a.id}`} className="text-sm font-medium underline">
-                보기
               </Link>
             </li>
           ))}

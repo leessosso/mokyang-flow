@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createEventSurvey } from "@/app/actions";
+import { createEventSurvey, createWednesdaySurvey } from "@/app/actions";
 import { Badge, Button, Card, CardHeader, Input, Label, Textarea } from "@/components/ui";
 import { currentUserCanManageApp } from "@/lib/auth";
 import { formatDateKo } from "@/lib/format";
@@ -16,7 +16,9 @@ export default async function SurveysPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold">참여조사</h2>
-        <p className="text-sm text-stone-600">식수·행사처럼 그때그때 만드는 참여 인원 조사</p>
+        <p className="text-sm text-stone-600">
+          수요예배 참석예정이나 식수처럼, 필요할 때만 여는 조사입니다. 매주 주일 출석과는 별개입니다.
+        </p>
       </div>
 
       <div
@@ -27,8 +29,36 @@ export default async function SurveysPage() {
         }
       >
         {canAdmin && (
-          <Card className="p-4 sm:p-5 lg:sticky lg:top-8">
-            <h3 className="font-medium">새 조사 만들기</h3>
+          <div className="space-y-6">
+          <Card className="p-4 sm:p-5">
+            <h3 className="font-medium">수요예배 참석예정</h3>
+            <p className="mt-1 text-sm text-stone-600">
+              수요예배를 열 때만 만듭니다. 가장이 가족원마다 참석 예정을 표시합니다.
+            </p>
+            <form
+              action={async (fd) => {
+                "use server";
+                await createWednesdaySurvey(fd);
+              }}
+              className="mt-3 grid gap-3"
+            >
+              <div>
+                <Label>날짜</Label>
+                <Input name="eventDate" type="date" required />
+              </div>
+              <div>
+                <Label>제목</Label>
+                <Input name="title" placeholder="수요예배 참석예정" />
+              </div>
+              <div>
+                <Label>설명</Label>
+                <Textarea name="description" placeholder="참석할 가족원을 체크해 주세요" />
+              </div>
+              <Button type="submit">열기</Button>
+            </form>
+          </Card>
+          <Card className="p-4 sm:p-5">
+            <h3 className="font-medium">그 외 조사</h3>
             <form
               action={async (fd) => {
                 "use server";
@@ -68,25 +98,31 @@ export default async function SurveysPage() {
               <Button type="submit">만들기</Button>
             </form>
           </Card>
+          </div>
         )}
 
         <Card>
           <CardHeader title="조사 목록" />
           <ul className="divide-y divide-stone-100">
             {surveys.map((s) => (
-              <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
-                <div>
-                  <p className="font-medium">{s.title}</p>
-                  <p className="text-sm text-stone-500">{formatDateKo(s.eventDate)}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge tone={s.status === "open" ? "green" : "neutral"}>
-                    {s.status === "open" ? "진행 중" : "마감"}
-                  </Badge>
-                  <Link href={`/surveys/${s.id}`} className="text-sm font-medium underline">
-                    보기
-                  </Link>
-                </div>
+              <li key={s.id}>
+                <Link
+                  href={`/surveys/${s.id}`}
+                  className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 transition hover:bg-stone-50 focus-visible:bg-stone-50 focus-visible:outline-none sm:px-5"
+                >
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium">{s.title}</p>
+                      {s.kind === "wednesday" && <Badge tone="blue">수요</Badge>}
+                    </div>
+                    <p className="text-sm text-stone-500">{formatDateKo(s.eventDate)}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge tone={s.status === "open" ? "green" : "neutral"}>
+                      {s.status === "open" ? "진행 중" : "마감"}
+                    </Badge>
+                  </div>
+                </Link>
               </li>
             ))}
             {surveys.length === 0 && (
