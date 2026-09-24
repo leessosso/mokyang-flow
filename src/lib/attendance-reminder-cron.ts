@@ -17,7 +17,7 @@ export type AttendanceReminderCronResult =
     };
 
 /**
- * Vercel Cron(주일 오전, 서울)에서 호출한다.
+ * Vercel Cron(주일 18:00, 서울)에서 호출한다.
  * 목사가 열어 둔 오늘 주일 문서가 있을 때만, 담당 가족이 있는 가장에게 1회 알린다.
  */
 export async function runAttendanceReminderCron(): Promise<AttendanceReminderCronResult> {

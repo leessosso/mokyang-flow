@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/attendance-reminder",
-      "schedule": "30 23 * * 6"
+      "schedule": "0 9 * * 0"
     }
   ]
 }

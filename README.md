@@ -60,7 +60,7 @@ NEXT_PUBLIC_FIREBASE_VAPID_KEY="..."
 
 | 항목 | 설명 |
 |------|------|
-| 스케줄 | **매주 일요일 08:30 (Asia/Seoul)** — 예배 전에 가족원 출석을 입력하도록 유도 (`vercel.json` cron: 토요일 23:30 UTC) |
+| 스케줄 | **매주 일요일 18:00 (Asia/Seoul)** — 주일 예배 후 가족원 출석을 입력하도록 유도 (`vercel.json` cron: 일요일 09:00 UTC) |
 | 엔드포인트 | `GET /api/cron/attendance-reminder` |
 | 인증 | `CRON_SECRET` — 요청 헤더 `Authorization: Bearer <CRON_SECRET>` (Vercel Cron이 동일 값으로 호출) |
 | 멱등 | Firestore `settings/attendanceReminder` — `lastRemindedSundayId`로 같은 주일에 중복 발송 방지 |
