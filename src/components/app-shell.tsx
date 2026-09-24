@@ -69,10 +69,7 @@ export function AppShell({
     <div className="flex h-full min-h-screen flex-col bg-stone-50 text-stone-900 lg:flex-row">
       <aside className="hidden lg:flex lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-stone-200 lg:bg-white">
         <div className="border-b border-stone-100 px-5 py-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
-            2청년회
-          </p>
-          <h1 className="mt-0.5 text-lg font-semibold text-stone-900">리더 운영</h1>
+          <h1 className="text-lg font-semibold text-stone-900">2청년회 운영</h1>
           <DeploySmokeBadge className="mt-2" />
         </div>
         <AppNav items={nav} variant="desktop" />
@@ -87,10 +84,7 @@ export function AppShell({
         <header className="shrink-0 border-b border-stone-200 bg-white lg:hidden">
           <div className="flex items-center justify-between gap-4 px-4 py-3">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
-                2청년회
-              </p>
-              <h1 className="text-lg font-semibold text-stone-900">리더 운영</h1>
+              <h1 className="text-lg font-semibold text-stone-900">2청년회 운영</h1>
               <DeploySmokeBadge className="mt-1" />
             </div>
             <div className="flex min-w-0 items-center gap-2">

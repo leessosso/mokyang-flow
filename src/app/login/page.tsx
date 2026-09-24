@@ -17,10 +17,7 @@ export default async function LoginPage({
   return (
     <div className="flex min-h-screen items-center justify-center bg-stone-100 px-4 lg:justify-start lg:px-0">
       <div className="hidden h-screen w-[42%] max-w-xl flex-col justify-end bg-stone-800 px-12 py-16 text-stone-100 lg:flex">
-        <p className="text-sm font-medium uppercase tracking-wide text-stone-400">
-          2청년회
-        </p>
-        <h1 className="mt-2 text-4xl font-semibold">리더 운영</h1>
+        <h1 className="text-4xl font-semibold">2청년회 운영</h1>
         <DeploySmokeBadge className="mt-3" />
         <p className="mt-4 max-w-sm text-sm leading-6 text-stone-300">
           리더 모임 자료, 배정 모자, 가족 보고를 한곳에서 관리합니다.
@@ -28,11 +25,8 @@ export default async function LoginPage({
       </div>
       <Card className="w-full max-w-md p-6 sm:p-8 lg:ml-16 xl:ml-24">
         <div className="mb-6 text-center lg:text-left">
-          <p className="text-xs font-medium uppercase tracking-wide text-stone-500 lg:hidden">
-            2청년회
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold text-stone-900 lg:mt-0">
-            <span className="lg:hidden">리더 운영</span>
+          <h1 className="text-2xl font-semibold text-stone-900">
+            <span className="lg:hidden">2청년회 운영</span>
             <span className="hidden lg:inline">로그인</span>
           </h1>
           <p className="mt-2 text-sm text-stone-600">

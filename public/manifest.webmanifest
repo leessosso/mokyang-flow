@@ -1,7 +1,7 @@
 {
-  "name": "2청년회 리더 운영",
-  "short_name": "리더 운영",
-  "description": "리더 모임·가족 보고·출석 등 2청년회 리더 운영 도구",
+  "name": "2청년회 운영",
+  "short_name": "2청년회 운영",
+  "description": "리더 모임·가족 보고·출석 등 2청년회 운영 도구",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
@@ -22,7 +22,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/icons/icon-512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
