@@ -16,6 +16,8 @@ export const authConfig: NextAuthConfig = {
       const isPwaPublic =
         path === "/manifest.webmanifest" ||
         path === "/firebase-messaging-sw.js" ||
+        path === "/favicon.png" ||
+        path === "/favicon.ico" ||
         path.startsWith("/icons/");
       if (!isLoggedIn && !isLogin && !isSortingHat && !isPwaPublic) return false;
       if (isLoggedIn && isLogin) {
