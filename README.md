@@ -56,7 +56,17 @@ NEXT_PUBLIC_FIREBASE_VAPID_KEY="..."
 | 배정 UI | **리더 모임** 상세 → 「섬김 담당 (이번 모임)」 |
 | 트리거 | 담당 저장 시 담당자(`pushSubscriptions`)에게 「섬김 담당 · …」 푸시 (가족 보고 알림과 별도) |
 
-**Phase 3 (이 PR 범위 밖)**: 출석 리마인더·공지 브로드캐스트 등.
+**Phase 3 (출석 리마인더)**: 목사가 **오늘 날짜**로 주일을 열어 두었을 때, 담당 가족이 있는 **가장(LEADER)** 에게 주일 출석 입력을 알립니다. 목사·관리자는 출석 화면에서 QR·전체 합계를 다루므로 리마인더 대상이 아닙니다. 클릭 시 `/attendance/{sundayId}` (가장은 자동으로 자기 가족 화면으로 이동).
+
+| 항목 | 설명 |
+|------|------|
+| 스케줄 | **매주 일요일 18:00 (Asia/Seoul)** — 주일 예배 후 가족원 출석을 입력하도록 유도 (`vercel.json` cron: 일요일 09:00 UTC) |
+| 엔드포인트 | `GET /api/cron/attendance-reminder` |
+| 인증 | `CRON_SECRET` — 요청 헤더 `Authorization: Bearer <CRON_SECRET>` (Vercel Cron이 동일 값으로 호출) |
+| 멱등 | Firestore `settings/attendanceReminder` — `lastRemindedSundayId`로 같은 주일에 중복 발송 방지 |
+| 조용히 건너뜀 | 오늘 주일 문서 없음 · 이미 알림 보냄 · 담당 가족 가장 없음 · 구독 토큰 없음 |
+
+**Phase 4 (범위 밖)**: 공지 브로드캐스트 등.
 
 ### 웹 푸시 테스트
 
@@ -71,6 +81,22 @@ NEXT_PUBLIC_FIREBASE_VAPID_KEY="..."
 2. `pastor@church.demo` → **가장·임원 관리** → 박가장에 「리더 모임 전 기도회 인도」 체크 후 저장 (시드에 이미 있을 수 있음).
 3. **리더 모임** → `3월 1주 리더 모임` → 「섬김 담당」에서 기도회 인도를 다른 가장으로 바꿔 저장하거나, 미지정이면 박가장으로 지정.
 4. 박가장(또는 새 담당자) 기기에 「섬김 담당 · …」 푸시가 오고 `/meetings/{id}` 로 이동하는지 확인.
+
+**출석 리마인더 (Phase 3, Cron)**
+
+1. Vercel에 `CRON_SECRET`을 설정하고, 로컬 `.env`에도 같은 값을 넣습니다.
+2. `pastor@church.demo`로 **출석** → 오늘 날짜로 「새 주일 열기」.
+3. `leader1@church.demo` → **대시보드** → **알림 켜기**.
+4. 로컬에서 Cron을 흉내 냅니다 (에뮬레이터·Firebase Admin env 필요):
+
+```bash
+curl -sS -H "Authorization: Bearer $CRON_SECRET" \
+  "http://localhost:43123/api/cron/attendance-reminder"
+```
+
+5. 응답이 `{"status":"sent",...}` 이고 가장 기기에 「주일 출석 · …」 푸시가 오는지 확인. 같은 주일에 다시 호출하면 `already_reminded_for_sunday`로 건너뜁니다.
+
+배포 환경에서는 Vercel **Cron Jobs** 탭에서 `/api/cron/attendance-reminder` 실행 로그를 볼 수 있습니다.
 
 ## 요구 사항
 
@@ -229,4 +255,5 @@ Vercel은 서버리스라 디스크가 유지되지 않습니다. 로컬 파일�
 
 1. Vercel 프로젝트에 `.env.example`의 Firebase 서비스 계정 환경 변수를 등록합니다 (에뮬레이터 변수는 제외).
 2. `AUTH_SECRET`을 반드시 새 값으로 교체합니다.
-3. Firebase 콘솔에서 Firestore 보안 규칙을 "모든 클라이언트 접근 거부"로 유지합니다 — 이 앱은 서버(firebase-admin)로만 접근하므로 클라이언트 규칙을 열 필요가 없습니다.
+3. 출석 리마인더 Cron용 `CRON_SECRET`을 등록합니다 (Vercel이 Cron 호출 시 `Authorization: Bearer`로 전달).
+4. Firebase 콘솔에서 Firestore 보안 규칙을 "모든 클라이언트 접근 거부"로 유지합니다 — 이 앱은 서버(firebase-admin)로만 접근하므로 클라이언트 규칙을 열 필요가 없습니다.

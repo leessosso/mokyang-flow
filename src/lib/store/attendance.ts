@@ -1,3 +1,4 @@
+import { kstDateKeyFromIso } from "@/lib/kst-date";
 import {
   attendanceMarksCol,
   attendanceSundaysCol,
@@ -32,6 +33,14 @@ export async function getAttendanceSundayById(id: string): Promise<AttendanceSun
 export async function getLatestAttendanceSunday(): Promise<AttendanceSunday | null> {
   const sundays = await listAttendanceSundays();
   return sundays[0] ?? null;
+}
+
+/** 서울 달력 날짜(YYYY-MM-DD)와 일치하는 주일 출석 문서. */
+export async function getAttendanceSundayByKstDateKey(
+  dateKey: string,
+): Promise<AttendanceSunday | null> {
+  const sundays = await listAttendanceSundays();
+  return sundays.find((s) => kstDateKeyFromIso(s.date) === dateKey) ?? null;
 }
 
 export async function createAttendanceSunday(date: string, title: string): Promise<AttendanceSunday> {

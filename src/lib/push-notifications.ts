@@ -106,3 +106,30 @@ export async function notifyUsersOfServingDutyAssignment(options: {
     url: `/meetings/${options.meetingId}`,
   });
 }
+
+/** 주일 출석 입력 리마인더 — 담당 가족이 있는 가장(LEADER)에게 푸시. */
+export async function notifyLeadersOfAttendanceReminder(options: {
+  userIds: string[];
+  sundayId: string;
+  sundayTitle: string;
+  sundayDateIso: string;
+}): Promise<void> {
+  const uniqueUserIds = [...new Set(options.userIds)].filter(Boolean);
+  if (uniqueUserIds.length === 0) return;
+
+  const tokens = await listPushTokensForUserIds(uniqueUserIds);
+  if (tokens.length === 0) return;
+
+  const dateLabel = new Date(options.sundayDateIso).toLocaleDateString("ko-KR", {
+    timeZone: "Asia/Seoul",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  });
+
+  await sendWebPushToTokens(tokens, {
+    title: `주일 출석 · ${options.sundayTitle}`,
+    body: `${dateLabel} — 가족원 1-3부·4부·가족모임 출석을 입력해 주세요.`,
+    url: `/attendance/${options.sundayId}`,
+  });
+}
