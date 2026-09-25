@@ -524,48 +524,46 @@ export async function importAttendanceQr(sundayId: string, service: "s13" | "s4"
   redirect(`/attendance/${sundayId}?${params.toString()}`);
 }
 
-/** 수요예배 참석예정. 질문 없이 가족원마다 참석 예정만 받는다. */
-export async function createWednesdaySurvey(formData: FormData) {
-  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
-
-  const eventDate = formData.get("eventDate") as string;
-  const title = ((formData.get("title") as string) || "").trim() || "수요예배 참석예정";
-  const description = ((formData.get("description") as string) || "").trim();
-  if (!eventDate) return { error: "날짜를 입력해 주세요." };
-
-  const survey = await createEventSurveyStore({
-    title,
-    eventDate: new Date(eventDate).toISOString(),
-    description: description || null,
-    kind: "wednesday",
-    questions: [{ id: "plan", label: "참석 예정", type: "yesno" }],
-  });
-  revalidatePath("/surveys");
-  return { ok: true, id: survey.id };
-}
-
-/** 목사/관리자가 참여조사를 만든다. q1_label..q6_label / q1_type..q6_type 필드로 질문을 받는다. */
+/**
+ * 참여조사를 만든다.
+ * mode=participation: 가족원마다 참여 여부만 받는다.
+ * mode=questions: q1_label..q6_label / q1_type..q6_type 으로 질문을 받는다.
+ */
 export async function createEventSurvey(formData: FormData) {
   if (!(await requireAppManager())) return { error: "권한이 없습니다." };
 
+  const mode = formData.get("mode");
   const title = ((formData.get("title") as string) || "").trim();
   const eventDate = formData.get("eventDate") as string;
   const description = ((formData.get("description") as string) || "").trim();
+  if (mode !== "participation" && mode !== "questions") {
+    return { error: "조사 방식을 선택해 주세요." };
+  }
   if (!title || !eventDate) return { error: "제목과 날짜를 입력해 주세요." };
 
-  const questions: SurveyQuestion[] = [];
-  for (let i = 1; i <= MAX_SURVEY_QUESTIONS; i++) {
-    const label = ((formData.get(`q${i}_label`) as string) || "").trim();
-    if (!label) continue;
-    const type = ((formData.get(`q${i}_type`) as string) || "yesno") as SurveyQuestionType;
-    questions.push({ id: `q${i}`, label, type });
+  let questions: SurveyQuestion[];
+  if (mode === "participation") {
+    const label = ((formData.get("participationLabel") as string) || "").trim() || "참여";
+    questions = [{ id: "plan", label, type: "yesno" }];
+  } else {
+    questions = [];
+    for (let i = 1; i <= MAX_SURVEY_QUESTIONS; i++) {
+      const label = ((formData.get(`q${i}_label`) as string) || "").trim();
+      if (!label) continue;
+      const type = ((formData.get(`q${i}_type`) as string) || "yesno") as SurveyQuestionType;
+      if (type !== "yesno" && type !== "number" && type !== "text") {
+        return { error: "질문 유형이 올바르지 않습니다." };
+      }
+      questions.push({ id: `q${i}`, label, type });
+    }
+    if (questions.length === 0) return { error: "질문을 1개 이상 입력해 주세요." };
   }
-  if (questions.length === 0) return { error: "질문을 1개 이상 입력해 주세요." };
 
   const survey = await createEventSurveyStore({
     title,
     eventDate: new Date(eventDate).toISOString(),
     description: description || null,
+    kind: mode === "participation" ? "participation" : "general",
     questions,
   });
   revalidatePath("/surveys");

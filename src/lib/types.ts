@@ -233,13 +233,18 @@ export type SurveyQuestion = {
 };
 
 /**
- * general: 식수처럼 질문을 직접 짜는 조사.
- * wednesday: 수요예배 참석예정. 필요할 때만 연다.
+ * general: 질문을 직접 짜는 조사.
+ * participation: 가족원마다 참여 여부만 받는 조사.
+ * wednesday: 예전 참석예정 문서. 응답 방식은 participation과 같다.
  * kind가 없는 예전 문서는 general로 본다.
  */
-export type EventSurveyKind = "general" | "wednesday";
+export type EventSurveyKind = "general" | "participation" | "wednesday";
 
-/** 이벤트 참여조사 (식수 조사 등 일회성 조사, 수요 참석예정) */
+export function isParticipationSurvey(kind: EventSurveyKind | undefined): boolean {
+  return kind === "participation" || kind === "wednesday";
+}
+
+/** 필요할 때만 여는 참여조사. 가족 참여만 받거나, 질문을 직접 만든다. */
 export type EventSurvey = {
   id: string;
   title: string;
