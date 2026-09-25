@@ -17,7 +17,7 @@ export const OFFICER_TITLES = [
 
 export type OfficerTitle = (typeof OFFICER_TITLES)[number];
 
-/** 로그인 사용자에게 매핑하는 주간 섬김 슬롯 (Phase 2). 모임·예배 배정 시 「본인 담당」 푸시 대상. */
+/** 리더 모임에서 그 주 담당을 정하는 섬김 항목. 배정하면 해당 사용자에게 푸시가 간다. */
 export const SERVING_DUTIES = [
   { key: "prayer_meeting_lead", label: "기도회 인도" },
 ] as const;
@@ -37,8 +37,6 @@ export type User = {
   name: string;
   role: Role;
   officerTitle: OfficerTitle | null;
-  /** 이 계정이 맡을 수 있는 섬김 슬롯. 목사가 「가장·임원 관리」에서 지정. */
-  servingDutyKeys?: ServingDutyKey[];
   createdAt: string;
 };
 

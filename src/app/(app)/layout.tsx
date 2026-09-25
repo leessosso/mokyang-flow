@@ -15,7 +15,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <AppShell
       user={{
         name: session.user.name ?? "",
-        email: session.user.email ?? "",
         role: session.user.role,
         officerTitle: full?.officerTitle ?? null,
       }}

@@ -57,7 +57,7 @@ export function AppShell({
   familyReportHref,
 }: {
   children: React.ReactNode;
-  user: { name: string; role: Role; email: string; officerTitle: OfficerTitle | null };
+  user: { name: string; role: Role; officerTitle: OfficerTitle | null };
   familyReportHref: string;
 }) {
   const nav = navFor(user, familyReportHref);
@@ -71,21 +71,19 @@ export function AppShell({
         <AppNav items={nav} variant="desktop" />
         <div className="mt-auto border-t border-stone-100 px-3 py-4">
           <p className="truncate px-3 text-sm font-medium">{user.name}</p>
-          <p className="truncate px-3 text-xs text-stone-500">{user.email}</p>
           <LogoutButton className="mt-2" />
         </div>
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="shrink-0 border-b border-stone-200 bg-white lg:hidden">
-          <div className="flex items-center justify-between gap-3 px-4 py-3">
+          <div className="flex items-center justify-between gap-3 px-4 py-2">
             <div className="min-w-0 flex-1">
               <FitText text="2청년회 운영" />
             </div>
             <div className="flex min-w-0 max-w-[46%] items-center gap-2">
               <div className="min-w-0 text-right text-sm">
                 <p className="truncate font-medium">{user.name}</p>
-                <p className="truncate text-stone-500">{user.email}</p>
               </div>
               <LogoutButton className="shrink-0" />
             </div>

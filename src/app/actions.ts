@@ -7,7 +7,7 @@ import {
   isPastorOrAdmin,
   leaderCanAccessGroup,
 } from "@/lib/auth";
-import { canManageAnnouncements, canManageApp, isSpecialAttendance, SERVING_DUTIES, SERVING_DUTY_BY_KEY } from "@/lib/types";
+import { canManageAnnouncements, canManageApp, isSpecialAttendance, SERVING_DUTY_BY_KEY } from "@/lib/types";
 import {
   assignMemberToGroup as assignMemberToGroupStore,
   createGroup as createGroupStore,
@@ -16,7 +16,7 @@ import {
   listAllMembers,
   listCurrentLeaderUserIds,
 } from "@/lib/store/groups";
-import { getUserById, updateOfficerTitle as updateOfficerTitleStore, updateServingDutyKeys as updateServingDutyKeysStore } from "@/lib/store/users";
+import { getUserById, updateOfficerTitle as updateOfficerTitleStore } from "@/lib/store/users";
 import { getGroupById } from "@/lib/store/groups";
 import {
   notifyPastorsAndAdminsOfFamilyReport,
@@ -222,23 +222,6 @@ export async function updateOfficerTitle(userId: string, officerTitle: OfficerTi
   if (!(await requireAppManager())) return { error: "권한이 없습니다." };
   await updateOfficerTitleStore(userId, officerTitle || null);
   revalidatePath("/admin/handover");
-  return { ok: true };
-}
-
-/** 목사·관리자가 로그인 사용자별 섬김 슬롯(본인 담당 후보)을 지정한다. */
-export async function updateUserServingDuties(userId: string, formData: FormData) {
-  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
-
-  const target = await getUserById(userId);
-  if (!target) return { error: "사용자를 찾을 수 없습니다." };
-
-  const keys = SERVING_DUTIES.map((d) => d.key).filter(
-    (key) => formData.get(`duty_${key}`) === "on",
-  ) as ServingDutyKey[];
-
-  await updateServingDutyKeysStore(userId, keys);
-  revalidatePath("/admin/handover");
-  revalidatePath("/meetings");
   return { ok: true };
 }
 

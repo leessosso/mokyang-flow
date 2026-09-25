@@ -1,5 +1,5 @@
 import { usersCol, withId } from "@/lib/store/collections";
-import type { OfficerTitle, Role, ServingDutyKey, User } from "@/lib/types";
+import type { OfficerTitle, Role, User } from "@/lib/types";
 
 export async function getUserByEmail(email: string): Promise<User | null> {
   const snap = await usersCol.where("email", "==", email).limit(1).get();
@@ -59,11 +59,7 @@ export async function updateOfficerTitle(userId: string, officerTitle: OfficerTi
   await usersCol.doc(userId).update({ officerTitle });
 }
 
-export async function updateServingDutyKeys(userId: string, servingDutyKeys: ServingDutyKey[]) {
-  await usersCol.doc(userId).update({ servingDutyKeys });
-}
-
-/** 섬김·모임 배정 UI용 로그인 계정 (목사·관리자·가장). */
+/** 로그인 계정 (목사·관리자·가장). */
 export async function listLoginUsersForServing(): Promise<User[]> {
   const snap = await usersCol.get();
   return snap.docs

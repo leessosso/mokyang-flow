@@ -70,7 +70,7 @@ export default async function MeetingDetailPage({
       <Card>
         <CardHeader
           title="1. 기도회"
-          subtitle="그 주 선정된 가장이 인도합니다. 악보는 인도자만 올릴 수 있습니다."
+          subtitle="이번 모임에서 인도할 가장을 고릅니다. 악보는 그 인도자만 올릴 수 있습니다."
         />
         <div className="space-y-3 p-4 sm:p-5">
           <p className="text-sm text-stone-700">
@@ -93,7 +93,6 @@ export default async function MeetingDetailPage({
                 {familyLeaders.map((leader) => (
                   <option key={leader.id} value={leader.id}>
                     {leader.name}
-                    {(leader.servingDutyKeys ?? []).includes("prayer_meeting_lead") ? " ★" : ""}
                   </option>
                 ))}
               </select>

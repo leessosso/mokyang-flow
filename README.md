@@ -63,7 +63,7 @@ PWA 홈 화면에 표시되는 이름은 **「2청년회 운영」** 입니다 (
 | 매주 일요일 18:00 (서울) | 담당 가족이 있는 가장. 목사·임원은 제외 | `/attendance/{sundayId}` (가장은 자기 가족 화면) |
 | 공지를 지금 보냄 | `all` 알림을 켠 로그인 사용자, `leaders` 담당 가족 있는 가장, 또는 `users`로 고른 사람 | `/announcements/{id}` |
 
-기도회 인도 매핑은 **가장·임원 관리**의 「섬김 담당 매핑」이고, 이번 모임 담당은 **리더 모임** 상세의 기도회 인도입니다. 출석 리마인더는 `vercel.json` Cron `0 9 * * 0`(일요일 09:00 UTC = 18:00 KST)이 `GET /api/cron/attendance-reminder`를 호출합니다. `Authorization: Bearer <CRON_SECRET>`이 필요하고, Firestore `settings/attendanceReminder`의 `lastRemindedSundayId`로 같은 주일 중복 발송을 막습니다. 일요일이 아니거나, 이미 보냈거나, 담당 가족 가장·구독 토큰이 없으면 건너뜁니다.
+기도회 인도 가장은 **리더 모임** 상세에서 그 주 가장을 고릅니다. 출석 리마인더는 `vercel.json` Cron `0 9 * * 0`(일요일 09:00 UTC = 18:00 KST)이 `GET /api/cron/attendance-reminder`를 호출합니다. `Authorization: Bearer <CRON_SECRET>`이 필요하고, Firestore `settings/attendanceReminder`의 `lastRemindedSundayId`로 같은 주일 중복 발송을 막습니다. 일요일이 아니거나, 이미 보냈거나, 담당 가족 가장·구독 토큰이 없으면 건너뜁니다.
 
 **Firebase 콘솔**
 
@@ -169,7 +169,7 @@ npm run dev
 |------|--------|
 | 목사 | `pastor@church.demo` |
 | 1가족 가장 | `leader1@church.demo` |
-| 2가족 가장, 회장 겸임, 기도회 인도 | `leader2@church.demo` |
+| 2가족 가장, 회장 겸임 | `leader2@church.demo` |
 | 3가족 가장 (이전 가장 이력 포함) | `leader3@church.demo` |
 | 총무, 담당 가족 없음 | `officer1@church.demo` |
 

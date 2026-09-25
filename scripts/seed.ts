@@ -35,7 +35,6 @@ async function main() {
     name: string;
     role: "PASTOR" | "LEADER" | "ADMIN";
     officerTitle?: string | null;
-    servingDutyKeys?: string[];
   }) {
     const ref = getDb().collection("users").doc();
     await ref.set({
@@ -44,7 +43,6 @@ async function main() {
       name: data.name,
       role: data.role,
       officerTitle: data.officerTitle ?? null,
-      ...(data.servingDutyKeys?.length ? { servingDutyKeys: data.servingDutyKeys } : {}),
       createdAt: now,
     });
     return ref.id;
@@ -57,7 +55,6 @@ async function main() {
     name: "박가장",
     role: "LEADER",
     officerTitle: "회장",
-    servingDutyKeys: ["prayer_meeting_lead"],
   });
   const leader3Id = await addUser({ email: "leader3@church.demo", name: "최신가장", role: "LEADER" });
   const officerOnlyId = await addUser({
