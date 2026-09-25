@@ -1,42 +1,75 @@
-# 2청년회 리더 운영
+# 2청년회 운영
 
-PWA 홈 화면에 표시되는 앱 이름은 **「2청년회 운영」** 입니다 (`public/manifest.webmanifest`).
+PWA 홈 화면에 표시되는 이름은 **「2청년회 운영」** 입니다 (`public/manifest.webmanifest`).
 
-2청년회 가장·임원·목사를 위한 주간 운영 도구입니다. 가족(구 "조")·가족원 관리, 리더 모임(교안·기도회·악보), 배정 모자(조 배정·자리 뽑기), 가족 단위 비공개 가족 보고, 가장 인수인계를 한곳에서 처리합니다.
+2청년회 가장·임원·목사를 위한 주간 운영 도구입니다. 학기 가족 구성, 주일 출석, 참여조사, 리더 모임(교안·기도회·악보), 배정 모자, 가족 단위 비공개 보고, 공지, 가장 인수인계를 한곳에서 처리합니다.
 
-## 데이터 저장 구조
+## 메뉴
 
-이 앱은 SQLite/Prisma를 쓰지 않습니다. 로컬·배포 모두 **Firebase** 하나로 통일합니다.
+로그인 후 왼쪽(넓은 화면) 또는 위쪽(좁은 화면)에 나옵니다.
+
+| 메뉴 | 경로 | 누가 |
+|------|------|------|
+| 대시보드 | `/dashboard` | 모두. 이번 주일 출석이 비어 있으면 바로가기, 알림 켜기, 최근 리더 모임 |
+| 출석 | `/attendance` | 모두. 가장은 자기 가족, 임원·목사는 전체 |
+| 참여조사 | `/surveys` | 모두. 조사 생성은 임원·목사 |
+| 리더 모임 | `/meetings` | 모두 |
+| 가족 보고 | 가장은 `/reports/{자기 가족}`, 그 외 `/reports` | 그 가족 가장과 목사·관리자만 방을 봄 |
+| 공지 | `/announcements` | 모두 열람. 작성·발송은 임원·목사 |
+| 배정 모자 | `/hat` | 모두 |
+| 가족 | `/groups` | 임원·목사 |
+| 가장·임원 관리 | `/admin/handover` | 임원·목사 |
+| 배정 관리 | `/hat/admin` | 임원·목사 |
+
+임원은 회장·부회장·총무·부총무·서기·부서기·회계·부회계입니다. 담당 가족만 있는 일반 가장은 가족·가장 임명·출석 QR·참여조사 생성·공지 발송·배정 관리를 할 수 없습니다. 임원이 가장을 겸임할 수 있습니다.
+
+`/my-group`은 예전 주소입니다. 가장은 자기 가족 보고 방으로, 그 외에는 대시보드로 이동합니다.
+
+예배 좌석 배치(`/worship`, 인쇄 `/worship/{id}/print`)는 코드와 시드에 남아 있습니다. 메뉴에는 없습니다.
+
+## 하는 일
+
+- **가족·가족원**: 1년에 상반기·하반기 두 번 구성합니다. 학기 초에 가장을 정한 뒤, 임원·목사가 가족원을 등록하면 그 명단으로 매주 출석합니다. `가장·임원 관리`에서 다음 학기를 열면 이전 가족은 남고, 이전 가족원은 `가족`에서 미배정으로 보여 새 가족으로 옮깁니다.
+- **리더 모임**: 1. 기도회(그 주 가장 인도, 악보는 인도 가장) → 2. 말씀 교안 나눔(배정 모자로 조) → 3. 교안 해설 → 4. 그 주 광고. 나눔에는 가장·임원·게스트(부가장·사역팀장)·목사가 옵니다. 교안·해설지는 임원·목사가 올리고, 광고는 목사·임원이 적습니다.
+- **가족 보고**: 가장이 가족원을 태그해 글을 남기면, 목사와 그 가장만 보는 가족 단위 한 방에 쌓입니다. 가족원·가족 보고 방은 가장이 바뀌어도 그 학기 가족에 남습니다.
+- **출석**: 매주 주일 출석은 일정을 만들지 않아도, 그 주일부터 토요일까지 열려 있습니다. 다음 일요일부터는 전 주 출석을 고칠 수 없고 보기만 됩니다. 가장이 가족원마다 1-3부/4부 참석·방송과 4부 이후 가족모임 참석을 체크합니다. QR은 교회 출입 명단(CSV/xlsx, 첫 열 이름)을 임원·목사가 올려 켜지고, 동명이인·미매칭은 가족 화면에서 임원·목사가 직접 켭니다. 수련회처럼 매주가 아닌 날은 **비정기 출석체크**로 참석만 받습니다.
+- **참여조사**: 필요할 때만 엽니다. 수요예배 **참석예정**은 날짜만 정하면 가족원마다 예/아니오이고, 식수 같은 조사는 예/아니오·인원·메모를 조합합니다. 가장이 가족원을 대신해 응답하고, 임원·목사는 가족별 응답률과 합계를 봅니다.
+- **공지**: 목사·임원이 제목·본문·대상을 적어 임시저장하거나 바로 보냅니다. 예약 발송은 없습니다. 이미 보낸 공지는 다시 보내지 않습니다.
+- **배정 모자**: 리더 모임 나눔 조를 짜고 자리를 뽑습니다. 로그인한 메뉴와, 로그인 없이 여는 공개 페이지가 있습니다.
+
+## 데이터
+
+로컬·배포 모두 **Firebase**입니다. SQLite/Prisma는 쓰지 않습니다.
 
 | 무엇 | 어디에 |
 |------|--------|
-| 가족, 가장, 임원, 가족원, 리더 모임, 가족 보고 | **Firestore** (`src/lib/firebase-admin.ts`, `src/lib/store/*`) |
-| 교안, 교안 해설지, 악보 파일 | **Firebase Storage** (`src/lib/storage.ts`) |
-| 배정 모자 (조 배정·자리 뽑기) 실시간 상태 | 기존 **Realtime Database** (`public/sorting-hat/`, 변경 없음) |
+| 계정, 가족, 가족원, 가장 임기, 학기, 리더 모임, 가족 보고, 출석, 참여조사, 공지, 예배 좌석 | **Firestore** (`src/lib/firebase-admin.ts`, `src/lib/store/*`) |
+| 교안, 교안 해설지, 악보 | **Firebase Storage** (`src/lib/storage.ts`) |
+| 푸시 구독 | Firestore `pushSubscriptions` |
+| 배정 모자 실시간 상태 | **Realtime Database** (`public/sorting-hat/`). Firestore와 별개 |
 
-클라이언트는 Firestore/Storage를 직접 읽지 않습니다. 서버 액션(`src/app/actions.ts`)과 서버 컴포넌트만 `firebase-admin`으로 접근하고, 권한은 NextAuth 세션으로 검사합니다. **웹 푸시(FCM)만** 브라우저에서 Firebase Messaging SDK와 서비스 워커를 사용하며, 구독 토큰은 서버가 Firestore `pushSubscriptions`에 저장합니다.
+클라이언트는 Firestore/Storage를 직접 읽지 않습니다. 서버 액션(`src/app/actions.ts`)과 서버 컴포넌트만 `firebase-admin`으로 접근하고, 권한은 NextAuth 세션으로 검사합니다. **웹 푸시(FCM)만** 브라우저의 Firebase Messaging SDK와 서비스 워커를 쓰고, 토큰은 서버가 저장합니다.
 
-## 웹 푸시 (PWA + FCM) MVP
+## 웹 푸시
 
-로그인 사용자(목사·관리자·가장)만 브라우저 푸시를 받을 수 있습니다. 가족원(계정 없음)은 대상이 아니며, 카카오톡 보고와 병행합니다.
+로그인 사용자(목사·관리자·가장·임원)만 받을 수 있습니다. 가족원 계정은 없고, 가족 보고는 카카오톡과 병행합니다.
 
-같은 계정으로 삼성 인터넷과 설치형 PWA 등에서 각각 알림을 켜면 예전에는 토큰이 두 개 저장되어 동일 공지가 두 번 올 수 있었습니다. 지금은 **사용자당 최신 구독 토큰 하나**만 남기고, 발송·알림 tag로도 한 번만 보이도록 맞춥니다.
+같은 계정으로 브라우저와 설치형 PWA에서 각각 알림을 켜도 **사용자당 최신 토큰 하나**만 남습니다. 발송도 그 토큰만 쓰고, 같은 이벤트는 `notification.tag`로 한 번만 보이게 합니다.
 
-| 항목 | 설명 |
-|------|------|
-| PWA | `public/manifest.webmanifest`, `public/icons/*`, 대시보드에서 알림 켜기 |
-| 서비스 워커 | `/firebase-messaging-sw.js` (환경 변수 기반 동적 스크립트) |
-| 구독 저장 | Firestore `pushSubscriptions` — `{ userId, token, createdAt, lastSeenAt, userAgent? }`. **사용자당 최신 구독 토큰 하나만** 유지(브라우저·PWA 등에서 토큰이 바뀌면 이전 문서는 자동 삭제). |
-| 발송 | `firebase-admin` `sendEachForMulticast` (`src/lib/push-notifications.ts`). 발송 시에도 사용자당 최신 토큰만 사용하고, 동일 이벤트는 `notification.tag`로 겹침을 방지합니다. |
-| 트리거 | 가장(LEADER)이 가족 보고 메시지를 보내면 구독 중인 목사·관리자에게 푸시 → `/reports/{groupId}` |
+| 언제 | 누구에게 | 누르면 |
+|------|----------|--------|
+| 가장이 가족 보고를 보냄 | 구독 중인 목사·관리자 | `/reports/{groupId}` |
+| 리더 모임에서 기도회 인도 가장을 저장 | 그 담당자 | `/meetings/{meetingId}` |
+| 매주 일요일 18:00 (서울) | 담당 가족이 있는 가장. 목사·임원은 제외 | `/attendance/{sundayId}` (가장은 자기 가족 화면) |
+| 공지를 지금 보냄 | `all` 알림을 켠 로그인 사용자, `leaders` 담당 가족 있는 가장, 또는 `users`로 고른 사람 | `/announcements/{id}` |
 
-**Firebase 콘솔 (배포 전)**
+기도회 인도 매핑은 **가장·임원 관리**의 「섬김 담당 매핑」이고, 이번 모임 담당은 **리더 모임** 상세의 기도회 인도입니다. 출석 리마인더는 `vercel.json` Cron `0 9 * * 0`(일요일 09:00 UTC = 18:00 KST)이 `GET /api/cron/attendance-reminder`를 호출합니다. `Authorization: Bearer <CRON_SECRET>`이 필요하고, Firestore `settings/attendanceReminder`의 `lastRemindedSundayId`로 같은 주일 중복 발송을 막습니다. 일요일이 아니거나, 이미 보냈거나, 담당 가족 가장·구독 토큰이 없으면 건너뜁니다.
 
-1. 프로젝트 설정 → 일반 → 내 앱 → 웹 앱이 없으면 추가 (또는 `public/sorting-hat/firebase-config.js`와 **동일 프로젝트** `sorting-hat-9d69e`면 해당 웹 앱 설정 재사용).
-2. **Cloud Messaging** → Web Push certificates → Key pair 생성 → `NEXT_PUBLIC_FIREBASE_VAPID_KEY`에 등록.
-3. 서버용 서비스 계정(`FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY`)은 기존과 동일 프로젝트여야 FCM 발송이 됩니다. `FIREBASE_PROJECT_ID`와 `NEXT_PUBLIC_FIREBASE_PROJECT_ID`가 같아야 합니다.
+**Firebase 콘솔**
 
-**Vercel 환경 변수 (추가)**
+1. 프로젝트 설정 → 일반 → 웹 앱. `public/sorting-hat/firebase-config.js`와 **같은 프로젝트**면 그 웹 앱 설정을 재사용합니다.
+2. Cloud Messaging → Web Push certificates → Key pair → `NEXT_PUBLIC_FIREBASE_VAPID_KEY`.
+3. 서버 서비스 계정은 같은 프로젝트여야 합니다. `FIREBASE_PROJECT_ID`와 `NEXT_PUBLIC_FIREBASE_PROJECT_ID`가 같아야 합니다.
 
 ```
 NEXT_PUBLIC_FIREBASE_API_KEY="..."
@@ -47,99 +80,36 @@ NEXT_PUBLIC_FIREBASE_APP_ID="..."
 NEXT_PUBLIC_FIREBASE_VAPID_KEY="..."
 ```
 
-`sorting-hat-9d69e`를 그대로 쓰는 경우 예시는 `public/sorting-hat/firebase-config.js`의 `apiKey`, `authDomain`, `projectId`, `messagingSenderId`, `appId`와 동일하게 맞춥니다 (서비스 계정 키는 git에 넣지 않음).
+서비스 계정 키는 git에 넣지 않습니다. iOS Safari는 **홈 화면에 추가한 PWA**에서만 웹 푸시가 됩니다.
 
-**iOS**: Safari는 **홈 화면에 추가한 PWA**에서만 웹 푸시가 동작합니다. 일반 탭 브라우저만으로는 알림을 받을 수 없습니다.
-
-**Phase 2 (섬김 · 본인 담당)**: `users.servingDutyKeys`에 로그인 사용자별 섬김 슬롯을 매핑하고, `leaderMeetings.dutyUserIds`(기도회 인도는 `prayerLeaderId`와 동기화)로 이번 모임 담당을 지정하면 해당 사용자에게 푸시 → `/meetings/{meetingId}`.
-
-| 항목 | 설명 |
-|------|------|
-| 섬김 슬롯 | `prayer_meeting_lead` (`src/lib/types.ts` `SERVING_DUTIES`) |
-| 매핑 UI | **가장·임원 관리** → 「섬김 담당 매핑」 |
-| 배정 UI | **리더 모임** 상세 → 1. 기도회 인도(이번 학기 가장) |
-| 트리거 | 담당 저장 시 담당자(`pushSubscriptions`)에게 「섬김 담당 · …」 푸시 (가족 보고 알림과 별도) |
-
-**Phase 3 (출석 리마인더)**: 매주 일요일 출석은 일정을 만들지 않아도 항상 열려 있습니다. 일요일 18:00(서울)에 그 주일 출석을 두고, 담당 가족이 있는 **가장(LEADER)** 에게 입력을 알립니다. 목사·관리자는 출석 화면에서 QR·전체 합계를 다루므로 리마인더 대상이 아닙니다. 클릭 시 `/attendance/{sundayId}` (가장은 자동으로 자기 가족 화면으로 이동).
-
-| 항목 | 설명 |
-|------|------|
-| 스케줄 | **매주 일요일 18:00 (Asia/Seoul)** — 주일 예배 후 가족원 출석을 입력하도록 유도 (`vercel.json` cron: 일요일 09:00 UTC) |
-| 엔드포인트 | `GET /api/cron/attendance-reminder` |
-| 인증 | `CRON_SECRET` — 요청 헤더 `Authorization: Bearer <CRON_SECRET>` (Vercel Cron이 동일 값으로 호출) |
-| 멱등 | Firestore `settings/attendanceReminder` — `lastRemindedSundayId`로 같은 주일에 중복 발송 방지 |
-| 조용히 건너뜀 | 오늘이 일요일 아님 · 이미 알림 보냄 · 담당 가족 가장 없음 · 구독 토큰 없음 |
-
-**Phase 4 (공지 브로드캐스트)**: 목사·관리자·2청년회 임원(회장~부회계)이 **공지** 메뉴에서 제목·본문·발송 대상을 작성하고, 임시저장 또는 **지금 보내기**로 FCM 웹 푸시를 보냅니다. 예약 발송은 없습니다. 클릭 시 `/announcements/{id}`.
-
-| 항목 | 설명 |
-|------|------|
-| 권한 | `canManageAnnouncements` — PASTOR/ADMIN 또는 `officerTitle`이 8직책 중 하나 (담당 가족만 있는 일반 가장은 작성·발송 불가) |
-| 대상 | `all` 알림 켠 로그인 사용자 전원 · `leaders` 담당 가족 있는 가장(LEADER) · `users` 체크리스트로 선택 |
-| 데이터 | Firestore `announcements` — draft/sent, 발송 시 `pushSuccessCount` / `pushFailureCount` |
-| UI | `/announcements` 목록 · `/announcements/new` 작성 · `/announcements/[id]` 상세·편집(임시저장만) |
-| 멱등 | 이미 `sent`인 문서는 재발송 불가 (MVP) |
-
-### 웹 푸시 테스트
-
-1. Vercel(또는 로컬)에 위 `NEXT_PUBLIC_*` + VAPID + 기존 Firebase Admin env 설정.
-2. `pastor@church.demo` 로 로그인 → **대시보드** → **알림 켜기** → 브라우저 권한 허용.
-3. `leader1@church.demo` 로 로그인 → **가족 보고** → 1가족 방에 메시지 전송.
-4. 목사 계정 기기/브라우저에 「가족 보고 · …」 푸시가 오고, 클릭 시 `/reports/{groupId}` 로 이동하는지 확인.
-
-**섬김 담당 (Phase 2)**
-
-1. `leader2@church.demo` 로 로그인 → **대시보드** → **알림 켜기**.
-2. `pastor@church.demo` → **가장·임원 관리** → 박가장에 「기도회 인도」 체크 후 저장 (시드에 이미 있을 수 있음).
-3. **리더 모임** → `3월 1주 리더 모임` → 「섬김 담당」에서 기도회 인도를 다른 가장으로 바꿔 저장하거나, 미지정이면 박가장으로 지정.
-4. 박가장(또는 새 담당자) 기기에 「섬김 담당 · …」 푸시가 오고 `/meetings/{id}` 로 이동하는지 확인.
-
-**출석 리마인더 (Phase 3, Cron)**
-
-1. Vercel에 `CRON_SECRET`을 설정하고, 로컬 `.env`에도 같은 값을 넣습니다.
-2. 일요일에 호출해야 합니다. 다른 요일에는 `not_sunday_...`로 건너뜁니다. 주일 출석 문서를 미리 열 필요는 없습니다.
-3. `leader1@church.demo` → **대시보드** → **알림 켜기**.
-4. 로컬에서 Cron을 흉내 냅니다 (에뮬레이터·Firebase Admin env 필요):
+로컬에서 출석 리마인더만 흉내 낼 때 (일요일, 에뮬레이터·Firebase Admin·`CRON_SECRET` 필요):
 
 ```bash
 curl -sS -H "Authorization: Bearer $CRON_SECRET" \
   "http://localhost:43123/api/cron/attendance-reminder"
 ```
 
-5. 응답이 `{"status":"sent",...}` 이고 가장 기기에 「주일 출석 · …」 푸시가 오는지 확인. 같은 주일에 다시 호출하면 `already_reminded_for_sunday`로 건너뜁니다.
-
-배포 환경에서는 Vercel **Cron Jobs** 탭에서 `/api/cron/attendance-reminder` 실행 로그를 볼 수 있습니다.
-
-**공지 브로드캐스트 (Phase 4)**
-
-1. `pastor@church.demo` 또는 `officer1@church.demo`(총무)로 로그인 → **공지** → **새 공지 작성**.
-2. 제목·본문 입력, 발송 대상 **가장** 선택 → **지금 보내기**.
-3. `leader1@church.demo`로 로그인 → **대시보드** → **알림 켜기** (미설정 시).
-4. 「공지 · …」 푸시가 오고 클릭 시 `/announcements/{id}` 로 열리는지 확인. 발송 화면에 푸시 성공/실패 건수가 표시됩니다.
+`{"status":"sent",...}` 이면 발송된 것이고, 같은 주일에 다시 호출하면 `already_reminded_for_sunday`로 건너뜁니다. 다른 요일은 `not_sunday_...`입니다.
 
 ## 요구 사항
 
 - Node.js 20+
 - npm
-- Firebase 프로젝트 (Firestore + Storage 사용 설정) 또는 로컬 개발용 Firebase Emulator Suite
+- Firebase 프로젝트 (Firestore + Storage) 또는 로컬 Firebase Emulator Suite
 
 ## 설치 및 실행
 
-### 1) 환경 변수
+`.env.example`을 복사해 `.env`를 만듭니다.
 
-`.env.example`을 참고해 `.env`를 만듭니다.
+**로컬 (에뮬레이터)**
 
-**로컬 개발 (에뮬레이터, 권장)**
-
-Firestore와 Storage만 로컬에서 돌립니다. 프로젝트 ID는 `demo-`로 시작해야 실제 Firebase에 붙지 않고 데모 설정으로 동작합니다.
-
-1. Firebase CLI를 설치합니다. 이미 있으면 건너뜁니다.
+Firestore와 Storage만 로컬에서 돌립니다. 프로젝트 ID는 `demo-`로 시작해야 실제 Firebase에 붙지 않습니다.
 
 ```bash
 npm install -g firebase-tools
 ```
 
-2. macOS에서는 Java가 필요합니다. Homebrew OpenJDK가 있어도 PATH에 없으면 에뮬레이터가 시작하지 않습니다.
+macOS에서 Java가 PATH에 없으면 에뮬레이터가 시작하지 않습니다.
 
 ```bash
 brew install openjdk
@@ -147,13 +117,11 @@ export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
 export JAVA_HOME="/opt/homebrew/opt/openjdk"
 ```
 
-3. 앱 폴더에서 에뮬레이터를 켭니다. 이 터미널은 켜 둔 채로 둡니다.
+이 터미널은 켜 둡니다.
 
 ```bash
 firebase emulators:start --only firestore,storage --project demo-mokyang-flow
 ```
-
-준비되면 아래 주소로 붙습니다.
 
 | 서비스 | 주소 |
 |--------|------|
@@ -161,9 +129,7 @@ firebase emulators:start --only firestore,storage --project demo-mokyang-flow
 | Firestore | `127.0.0.1:8080` |
 | Storage | `127.0.0.1:9199` |
 
-에뮬레이터를 끄면 메모리에만 있던 데이터가 사라집니다. 다시 켠 뒤에는 `npm run db:seed`로 데모 데이터를 다시 넣습니다.
-
-`.env`:
+에뮬레이터를 끄면 데이터가 사라집니다. 다시 켠 뒤 `npm run db:seed`로 데모 데이터를 넣습니다.
 
 ```
 AUTH_SECRET="로컬 개발용 시크릿"
@@ -173,9 +139,9 @@ FIREBASE_STORAGE_EMULATOR_HOST="127.0.0.1:9199"
 FIREBASE_STORAGE_BUCKET="demo-mokyang-flow.appspot.com"
 ```
 
-**실제 Firebase 프로젝트 연결 (배포용)**
+**실제 Firebase**
 
-Firebase 콘솔 → 프로젝트 설정 → 서비스 계정 → 새 비공개 키 생성 후:
+콘솔 → 프로젝트 설정 → 서비스 계정 → 새 비공개 키:
 
 ```
 AUTH_SECRET="프로덕션에서 반드시 교체"
@@ -185,94 +151,55 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY----
 FIREBASE_STORAGE_BUCKET="....appspot.com"
 ```
 
-### 2) 설치·시드·실행
-
-에뮬레이터가 켜진 상태에서 다른 터미널로 실행합니다.
+에뮬레이터가 켜진 뒤 다른 터미널에서:
 
 ```bash
 npm install
-npm run db:seed   # scripts/seed.ts — Firestore에 데모 데이터 기록
+npm run db:seed
 npm run dev
 ```
 
-브라우저에서 [http://localhost:43123](http://localhost:43123) 으로 접속합니다.
+[http://localhost:43123](http://localhost:43123)
 
 ## 데모 계정
 
-비밀번호는 모두 `demo1234` 입니다.
+비밀번호는 모두 `demo1234`입니다.
 
-| 역할 | 이메일 | 설명 |
-|------|--------|------|
-| 목사 | `pastor@church.demo` | 전체 가족·가족 보고·인수인계·임원 관리 |
-| 1가족 가장 | `leader1@church.demo` | 1가족 담당 |
-| 2가족 가장 (회장 겸임) | `leader2@church.demo` | 2가족 담당, 임원 회장 겸임, 기도회 인도자 |
-| 3가족 가장 | `leader3@church.demo` | 3가족 담당 (이전 가장 이력 포함) |
-| 임원 전용 (총무) | `officer1@church.demo` | 담당 가족 없이 임원 직책만 있는 계정 |
+| 역할 | 이메일 |
+|------|--------|
+| 목사 | `pastor@church.demo` |
+| 1가족 가장 | `leader1@church.demo` |
+| 2가족 가장, 회장 겸임, 기도회 인도 | `leader2@church.demo` |
+| 3가족 가장 (이전 가장 이력 포함) | `leader3@church.demo` |
+| 총무, 담당 가족 없음 | `officer1@church.demo` |
 
-시드 데이터에는 3개 가족, 10명 가족원, 리더 모임 1건(기도회 인도자 지정 포함), 1가족 보고 방(가족원 태그 메시지 2건)이 포함됩니다.
-
-## 주요 기능
-
-- **가족·가족원**: 1년에 상반기·하반기 두 번 구성합니다. 학기 초에 가장을 정한 뒤, 임원·목사가 가장과 맞춘 가족원을 등록하면 그 명단으로 매주 출석을 합니다. `가장·임원 관리`에서 다음 학기를 열면 이전 가족은 남겨 두고 새로 짭니다.
-- **임원**: 회장·부회장·총무·부총무·서기·부서기·회계·부회계 8직책. 임원과 목사가 앱 운영(가족, 출석, 참여조사, 공지, 리더 모임, 배정 관리, 가장 임명)을 같이 합니다. 임원이 가장을 겸임할 수 있습니다.
-- **리더 모임**: 매주 기도회(그 주 가장 인도), 말씀 교안 나눔, 목사 교안 해설, 그 주 광고 순입니다. 나눔에는 가장·임원·게스트(부가장·사역팀장)가 오고, 조는 배정 모자로 짭니다. 교안·해설지는 임원·목사가 올리고, 악보는 기도회 인도 가장이 올립니다.
-- **가족 보고**: 가장이 가족원을 태그해 글을 남기면, 목사와 그 가장만 보는 **가족 단위 한 방**에 쌓입니다. 임원을 포함해 다른 사람은 그 방을 볼 수 없습니다.
-- **가장 인수인계**: 임원·목사가 `가장·임원 관리`에서 새 가장을 임명하면 이력이 남고, 가족원·가족 보고 방은 가족 기준으로 유지되어 새 가장이 계속 열람·작성할 수 있습니다.
-- **배정 모자**: 리더 모임 나눔 조를 가장·임원·게스트(부가장·사역팀장)로 짜고 자리를 뽑습니다. 로그인한 메뉴(`/hat`, `/hat/admin`)에서 헤더 아래에 열립니다. 현장용 공개 URL도 있습니다.
-- **출석**(`/attendance`): 매주 주일 출석은 일정을 등록하지 않아도 그 주일부터 토요일까지 열려 있습니다. 다음 일요일부터는 전 주 출석을 고칠 수 없습니다. 가장이 자기 가족원마다 1-3부/4부 참석·방송과 4부 이후 가족모임 참석 여부를 체크합니다. QR은 교회 출입 명단(CSV/xlsx)을 임원·목사가 올려 자동으로 켜지고, 동명이인·미매칭은 그 화면에서 직접 켤 수 있습니다. 수련회처럼 매주가 아닌 날은 임원·목사가 **비정기 출석체크**를 열어 참석만 받습니다.
-- **참여조사**(`/surveys`): 필요할 때만 엽니다. 수요예배 **참석예정**은 날짜만 정하면 가족원마다 예/아니오로 받고, 식수 같은 조사는 예/아니오·인원·메모 질문을 조합해 만듭니다. 가장이 가족원을 대신해 응답하고, 임원·목사는 가족별 응답률과 합계를 봅니다.
+시드에는 이번 학기 가족 3개, 가족원 10명, 리더 모임 1건, 1가족 보고 방(메시지 2건), 주일 예배 좌석 1건이 들어 있습니다.
 
 ## 배정 모자
 
-기존 Firebase Realtime Database를 그대로 씁니다. 본 앱의 Firestore와는 별개 데이터입니다 (동시성이 필요한 현장 배정만 RTDB에 둡니다).
-
-`public/sorting-hat/firebase-config.js`에 sorting-hat RTDB용 **웹 클라이언트 설정**이 포함되어 있어 Vercel 등 배포 환경에서도 바로 동작합니다 (Firebase가 브라우저에 노출하도록 설계한 공개 값이며, 서비스 계정 키와는 별개입니다). 다른 Firebase 프로젝트로 바꿀 때만 `firebase-config.example.js`를 참고해 값을 수정합니다.
+Realtime Database를 그대로 씁니다. `public/sorting-hat/firebase-config.js`의 웹 클라이언트 설정으로 배포 환경에서도 동작합니다. 다른 Firebase 프로젝트로 바꿀 때만 `firebase-config.example.js`를 참고합니다.
 
 | 화면 | URL |
 |------|-----|
-| 조 배정·자리 뽑기 (메뉴) | [http://localhost:43123/hat](http://localhost:43123/hat) |
-| 관리자 (메뉴) | [http://localhost:43123/hat/admin](http://localhost:43123/hat/admin) |
-| 조 배정·자리 뽑기 (공개) | [http://localhost:43123/sorting-hat/index.html](http://localhost:43123/sorting-hat/index.html) |
-| 관리자 (공개) | [http://localhost:43123/sorting-hat/admin.html](http://localhost:43123/sorting-hat/admin.html) |
+| 조 배정·자리 뽑기 | [http://localhost:43123/hat](http://localhost:43123/hat) |
+| 관리 | [http://localhost:43123/hat/admin](http://localhost:43123/hat/admin) |
+| 공개 조 배정 | [http://localhost:43123/sorting-hat/index.html](http://localhost:43123/sorting-hat/index.html) |
+| 공개 관리 | [http://localhost:43123/sorting-hat/admin.html](http://localhost:43123/sorting-hat/admin.html) |
 
-관리자 비밀 메뉴 기본 비밀번호는 `7777`입니다. 이후 리더 운영 앱의 목사/ADMIN 세션과 연계할 예정입니다.
+관리자 비밀 메뉴 기본 비밀번호는 `7777`입니다.
 
-## 데모 시나리오
+## 배포 (Vercel)
 
-### 1. 가족 보고 (가장 → 목사, 가족원 태그)
+디스크에 남기는 데이터는 없습니다. Firebase 환경 변수만 있으면 배포할 수 있습니다.
 
-1. `leader1@church.demo` 로 로그인
-2. **가족 보고** → 1가족 방
-3. 가족원을 태그하거나 "가족 전체"로 새 메시지 작성 후 전송
-4. 로그아웃 후 `pastor@church.demo` 로 로그인
-5. **가족 보고** → 1가족 방에서 답장 (같은 방에 이어짐)
-
-### 2. 리더 모임 (교안·기도회·배정 모자)
-
-1. `pastor@church.demo` 로 로그인 → **리더 모임** → `3월 1주 리더 모임`
-2. 1. 기도회에서 인도 가장 지정, 2. 말씀 교안 나눔에서 교안 업로드, 3. 교안 해설에서 해설지 업로드
-3. `leader2@church.demo`(지정된 인도자)로 로그인해 악보 업로드
-4. 2. 말씀 교안 나눔에서 배정 모자로 이동해 조 배정·자리 뽑기 진행
-
-### 3. 가장 인수인계 + 임원 지정
-
-1. `pastor@church.demo` → **가장·임원 관리**
-2. 임원 직책 표에서 리더 계정에 회장~부회계 지정
-3. 1가족의 새 가장으로 `최신가장(leader3)` 선택 후 실행
-4. `leader3@church.demo` 로 로그인 → **가족 보고**에서 1가족 방 확인
+1. `.env.example`의 Firebase 서비스 계정·웹 푸시 변수를 등록합니다. 에뮬레이터 변수는 넣지 않습니다.
+2. `AUTH_SECRET`을 새 값으로 바꿉니다.
+3. 출석 리마인더용 `CRON_SECRET`을 등록합니다. Vercel Cron이 `Authorization: Bearer`로 넘깁니다.
+4. Firestore 규칙은 클라이언트 접근 거부로 둡니다. 이 앱은 서버에서만 접근합니다.
 
 ## 기술 스택
 
 - Next.js (App Router), TypeScript, Tailwind CSS
-- NextAuth (이메일·비밀번호, Firestore 유저 검증)
-- Firebase Admin SDK (Firestore + Storage)
-- Firebase Cloud Messaging (웹 푸시, PWA 서비스 워커)
-
-## 배포 (Vercel)
-
-Vercel은 서버리스라 디스크가 유지되지 않습니다. 로컬 파일이나 SQLite는 쓰지 않으므로 별도 마이그레이션 없이 그대로 배포할 수 있습니다.
-
-1. Vercel 프로젝트에 `.env.example`의 Firebase 서비스 계정 환경 변수를 등록합니다 (에뮬레이터 변수는 제외).
-2. `AUTH_SECRET`을 반드시 새 값으로 교체합니다.
-3. 출석 리마인더 Cron용 `CRON_SECRET`을 등록합니다 (Vercel이 Cron 호출 시 `Authorization: Bearer`로 전달).
-4. Firebase 콘솔에서 Firestore 보안 규칙을 "모든 클라이언트 접근 거부"로 유지합니다 — 이 앱은 서버(firebase-admin)로만 접근하므로 클라이언트 규칙을 열 필요가 없습니다.
+- NextAuth (이메일·비밀번호, Firestore 사용자)
+- Firebase Admin (Firestore, Storage, Cloud Messaging)
+- PWA (`public/manifest.webmanifest`, `public/icons/*`, `/firebase-messaging-sw.js`)
