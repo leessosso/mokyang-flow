@@ -1,26 +1,32 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { handoverLeader, startNextFamilyTerm, updateOfficerTitle } from "@/app/actions";
+import { handoverLeader, startNextFamilyTerm } from "@/app/actions";
+import { OfficerYearBoard } from "@/components/officer-year-board";
 import { Button, Card, CardHeader, Label } from "@/components/ui";
-import { currentUserCanManageApp } from "@/lib/auth";
+import { currentUserCanManageApp, getCurrentUser } from "@/lib/auth";
 import { formatDateKo, termLabel } from "@/lib/format";
 import { listAllGroups, listGroups, listLeaderTermsByGroup } from "@/lib/store/groups";
+import { listActiveOfficers } from "@/lib/store/officers";
 import { getCurrentTerm } from "@/lib/store/settings";
 import { listUsersByRole } from "@/lib/store/users";
 import { getUsersByIds } from "@/lib/store/users";
 import { nextTerm, sameTerm } from "@/lib/term";
-import { OFFICER_TITLES } from "@/lib/types";
+import { isPastorOrAdmin, OFFICER_TITLES } from "@/lib/types";
 
 export default async function HandoverPage() {
   if (!(await currentUserCanManageApp())) redirect("/dashboard");
 
-  const [term, groups, allGroups, leaders] = await Promise.all([
+  const [term, groups, allGroups, leaders, actor] = await Promise.all([
     getCurrentTerm(),
     listGroups(),
     listAllGroups(),
     listUsersByRole("LEADER"),
+    getCurrentUser(),
   ]);
+  const appointments = await listActiveOfficers(term.year);
+  const isPastor = actor ? isPastorOrAdmin(actor.role) : false;
   const upcoming = nextTerm(term);
+  const openingNewYear = upcoming.half === "H1";
   const pastGroups = allGroups.filter((g) => !sameTerm({ year: g.year, half: g.half }, term));
 
   const groupsWithTerms = await Promise.all(
@@ -37,76 +43,61 @@ export default async function HandoverPage() {
     ...groups.map((g) => g.currentLeaderId ?? "").filter(Boolean),
     ...pastWithHeads.map((g) => g.currentLeaderId ?? "").filter(Boolean),
     ...leaderIdsInTerms,
+    ...appointments.map((appointment) => appointment.userId),
   ]);
+  const seats = OFFICER_TITLES.map((title) => {
+    const appointment = appointments.find((item) => item.title === title);
+    const person = appointment ? leaderNames.get(appointment.userId) : undefined;
+    return {
+      title,
+      userId: appointment?.userId ?? null,
+      name: person?.name ?? null,
+      email: person?.email ?? null,
+    };
+  });
 
   return (
     <div className="space-y-8">
       <div>
         <h2 className="text-xl font-semibold">가장·임원 관리</h2>
         <p className="text-sm text-stone-600">
-          가족은 1년에 상반기·하반기 두 번 구성하고, 가장도 그때 정합니다. 지금 학기는{" "}
-          <span className="font-medium text-stone-800">{termLabel(term)}</span>
-          입니다. 가족원·가족 보고 방은 그 학기 가족에 묶입니다.
+          임원은 해마다 상반기에 정하고 하반기까지 둡니다. 가족과 가장은 상반기·하반기마다 다시 짭니다.
+          지금 학기는 <span className="font-medium text-stone-800">{termLabel(term)}</span>
+          입니다.
         </p>
       </div>
 
       <Card className="p-4 sm:p-5">
         <h3 className="font-medium text-stone-900">다음 학기 시작</h3>
         <p className="mt-1 text-sm text-stone-600">
-          {termLabel(upcoming)} 구성을 엽니다. 이전 학기 가족은 남겨 두고, 새 가족과 가장을 다시 짭니다.
-          이전 학기 가족원은 「가족」에서 미배정으로 보이니 새 가족으로 옮기면 됩니다.
+          {openingNewYear
+            ? `${termLabel(upcoming)}를 엽니다. 올해 임원 직책은 끝나고, 목사가 새 임원을 앉힙니다. 그 임원이 가족과 가장을 구성합니다. 이전 가족원은 「가족」에서 미배정으로 보입니다.`
+            : `${termLabel(upcoming)}를 엽니다. 올해 임원은 그대로 두고, 가족과 가장만 다시 짭니다. 이전 가족원은 「가족」에서 미배정으로 보입니다.`}
         </p>
-        <form
-          action={async () => {
-            "use server";
-            await startNextFamilyTerm();
-          }}
-          className="mt-3"
-        >
-          <Button type="submit" variant="secondary">
-            {termLabel(upcoming)} 구성 시작
-          </Button>
-        </form>
+        {openingNewYear && !isPastor ? (
+          <p className="mt-3 text-sm text-stone-500">다음 해 상반기는 목사가 엽니다.</p>
+        ) : (
+          <form
+            action={async () => {
+              "use server";
+              await startNextFamilyTerm();
+            }}
+            className="mt-3"
+          >
+            <Button type="submit" variant="secondary">
+              {termLabel(upcoming)} 구성 시작
+            </Button>
+          </form>
+        )}
       </Card>
 
-      <Card>
-        <CardHeader title="임원 직책" subtitle="리더 계정에 회장~부회계 직책을 지정합니다" />
-        <ul className="divide-y divide-stone-100">
-          {leaders.map((l) => (
-            <li key={l.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
-              <div>
-                <p className="font-medium text-stone-900">{l.name}</p>
-                <p className="text-xs text-stone-500">{l.email}</p>
-              </div>
-              <form
-                action={async (fd) => {
-                  "use server";
-                  await updateOfficerTitle(
-                    l.id,
-                    (fd.get("officerTitle") as string) as never,
-                  );
-                }}
-                className="flex items-center gap-2"
-              >
-                <select
-                  name="officerTitle"
-                  defaultValue={l.officerTitle ?? ""}
-                  className="rounded-lg border border-stone-300 px-2 py-1.5 text-sm"
-                >
-                  <option value="">임원 아님</option>
-                  {OFFICER_TITLES.map((title) => (
-                    <option key={title} value={title}>{title}</option>
-                  ))}
-                </select>
-                <Button type="submit" variant="secondary">저장</Button>
-              </form>
-            </li>
-          ))}
-          {leaders.length === 0 && (
-            <li className="px-4 py-6 text-sm text-stone-500 sm:px-5">등록된 리더 계정이 없습니다.</li>
-          )}
-        </ul>
-      </Card>
+      <OfficerYearBoard
+        year={term.year}
+        half={term.half}
+        seats={seats}
+        leaders={leaders.map((leader) => ({ id: leader.id, name: leader.name, email: leader.email }))}
+        isPastor={isPastor}
+      />
 
       <div>
         <h3 className="mb-3 text-base font-semibold">{termLabel(term)} 가장 구성</h3>

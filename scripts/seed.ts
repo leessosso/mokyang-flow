@@ -11,6 +11,7 @@ const COLLECTIONS = [
   "meetingAssets",
   "leaderMeetings",
   "groupLeaderTerms",
+  "officerAppointments",
   "members",
   "groups",
   "users",
@@ -54,17 +55,73 @@ async function main() {
     email: "leader2@church.demo",
     name: "박가장",
     role: "LEADER",
-    officerTitle: "회장",
   });
   const leader3Id = await addUser({ email: "leader3@church.demo", name: "최신가장", role: "LEADER" });
   const officerOnlyId = await addUser({
     email: "officer1@church.demo",
     name: "정총무",
     role: "LEADER",
-    officerTitle: "총무",
   });
 
   await getDb().collection("settings").doc("app").set({ year: 2026, half: "H1" });
+
+  const officers = [
+    { title: "회장", name: "임범석", email: "imbeomseok@test.church" },
+    { title: "부회장", name: "김광림", email: "kimgwangrim@test.church" },
+    { title: "총무", name: "이혜미", email: "leehyemi@test.church" },
+    { title: "부총무", name: "이승석", email: "leeseungseok@test.church" },
+    { title: "서기", name: "박기도", email: "parkgido@test.church" },
+    { title: "부서기", name: "김이레", email: "kimire@test.church" },
+    { title: "회계", name: "정효정", email: "jeonghyojeong@test.church" },
+    { title: "부회계", name: "우재황", email: "woojaehwang@test.church" },
+  ] as const;
+  for (const officer of officers) {
+    const userId = await addUser({
+      email: officer.email,
+      name: officer.name,
+      role: "LEADER",
+      officerTitle: officer.title,
+    });
+    await getDb().collection("officerAppointments").doc().set({
+      userId,
+      year: 2026,
+      title: officer.title,
+      startedAt: now,
+      endedAt: null,
+    });
+  }
+
+  const householdHeads = [
+    ["김건우", "kimgeonwoo@test.church", "건우네"],
+    ["김시인", "kimsiin@test.church", "시인이네"],
+    ["김애선", "kimaeseon@test.church", "애선이네"],
+    ["김윤영", "kimyunyeong@test.church", "윤영이네"],
+    ["김재원", "kimjaewon@test.church", "재원이네"],
+    ["김종인", "kimjongin@test.church", "종인이네"],
+    ["김찬욱", "kimchanuk@test.church", "찬욱이네"],
+    ["김현중D", "kimhyeonjungd@test.church", "현중이네"],
+    ["박희원", "parkheewon@test.church", "희원이네"],
+    ["방보윤", "bangboyun@test.church", "보윤이네"],
+    ["방연진", "bangyeonjin@test.church", "연진이네"],
+    ["백동현", "baekdonghyeon@test.church", "백동현네"],
+    ["백에스더", "baekesther@test.church", "에스더네"],
+    ["송민석", "songminseok@test.church", "민석이네"],
+    ["송혜미", "songhyemi@test.church", "혜미네"],
+    ["신상준", "shinsangjun@test.church", "상준이네"],
+    ["원유정", "wonyujeong@test.church", "유정이네"],
+    ["위성혜", "wiseonghye@test.church", "성혜네"],
+    ["윤주앙", "yoonjuang@test.church", "주앙이네"],
+    ["이동현c", "leedonghyunc@test.church", "이동현네"],
+    ["이슬기", "leeseulgi@test.church", "슬기네"],
+    ["이정인", "leejeongin@test.church", "정인이네"],
+    ["이필홍", "leephilhong@test.church", "필홍이네"],
+    ["한성민", "hanseongmin@test.church", "성민이네"],
+  ] as const;
+  const householdHeadIds: { userId: string; familyName: string }[] = [];
+  for (const [name, email, familyName] of householdHeads) {
+    const userId = await addUser({ email, name, role: "LEADER" });
+    householdHeadIds.push({ userId, familyName });
+  }
 
   async function addGroup(name: string, description: string, currentLeaderId: string, year: number, half: "H1" | "H2") {
     const ref = getDb().collection("groups").doc();
@@ -86,6 +143,18 @@ async function main() {
     await getDb().collection("groupLeaderTerms").doc().set({
       groupId,
       leaderId,
+      year: 2026,
+      half: "H1",
+      startedAt: termStart,
+      endedAt: null,
+    });
+  }
+
+  for (const { userId, familyName } of householdHeadIds) {
+    const groupId = await addGroup(familyName, "", userId, 2026, "H1");
+    await getDb().collection("groupLeaderTerms").doc().set({
+      groupId,
+      leaderId: userId,
       year: 2026,
       half: "H1",
       startedAt: termStart,
@@ -180,9 +249,9 @@ async function main() {
   console.log("시드 완료");
   console.log("목사:", "pastor@church.demo", "/ demo1234");
   console.log("1가족 가장:", "leader1@church.demo");
-  console.log("2가족 가장(회장 겸임):", "leader2@church.demo");
+  console.log("2가족 가장:", "leader2@church.demo");
   console.log("3가족 가장(인수인계 후):", "leader3@church.demo");
-  console.log("임원 전용(총무, 가족 없음):", "officer1@church.demo");
+  console.log("2026 임원: imbeomseok@test.church 외 7명 / demo1234");
   void officerOnlyId;
 }
 

@@ -16,7 +16,9 @@ import {
   listAllMembers,
   listCurrentLeaderUserIds,
 } from "@/lib/store/groups";
-import { getUserById, updateOfficerTitle as updateOfficerTitleStore } from "@/lib/store/users";
+import { appointOfficer, endOfficerYear, listActiveOfficers, vacateOfficer } from "@/lib/store/officers";
+import { hashPassword } from "@/lib/password";
+import { getUserByEmail, getUserById, createUser } from "@/lib/store/users";
 import { getGroupById } from "@/lib/store/groups";
 import {
   notifyPastorsAndAdminsOfFamilyReport,
@@ -60,11 +62,11 @@ import { parseNamesFromFile } from "@/lib/qr-import";
 import { uploadMeetingFile } from "@/lib/storage";
 import { getCurrentTerm, setCurrentTerm } from "@/lib/store/settings";
 import { nextTerm } from "@/lib/term";
+import { OFFICER_TITLES, type OfficerTitle } from "@/lib/types";
 import type {
   AnnouncementAudience,
   AttendanceStatus,
   MeetingAssetKind,
-  OfficerTitle,
   ServingDutyKey,
   SurveyQuestion,
   SurveyQuestionType,
@@ -82,6 +84,13 @@ async function requireAppManager() {
   const session = await sessionUser();
   const full = await getUserById(session.id);
   if (!full || !canManageApp(full)) return null;
+  return full;
+}
+
+async function requirePastor() {
+  const session = await sessionUser();
+  const full = await getUserById(session.id);
+  if (!full || !isPastorOrAdmin(full.role)) return null;
   return full;
 }
 
@@ -207,9 +216,16 @@ export async function handoverLeader(groupId: string, newLeaderId: string) {
 }
 
 export async function startNextFamilyTerm() {
-  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
+  const manager = await requireAppManager();
+  if (!manager) return { error: "권한이 없습니다." };
   const current = await getCurrentTerm();
   const next = nextTerm(current);
+  if (next.half === "H1") {
+    if (!isPastorOrAdmin(manager.role)) {
+      return { error: "다음 해 상반기는 목사만 열 수 있습니다." };
+    }
+    await endOfficerYear(current.year);
+  }
   await setCurrentTerm(next);
   revalidatePath("/admin/handover");
   revalidatePath("/groups");
@@ -218,11 +234,92 @@ export async function startNextFamilyTerm() {
   return { ok: true, term: next };
 }
 
-export async function updateOfficerTitle(userId: string, officerTitle: OfficerTitle | "") {
-  if (!(await requireAppManager())) return { error: "권한이 없습니다." };
-  await updateOfficerTitleStore(userId, officerTitle || null);
+function readNewLeader(formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  if (!name) return { ok: false as const, error: "이름을 입력해 주세요." };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false as const, error: "이메일을 확인해 주세요." };
+  if (password.length < 8) return { ok: false as const, error: "비밀번호는 8자 이상이어야 합니다." };
+  return { ok: true as const, name, email, password };
+}
+
+async function createLeaderAccount(formData: FormData) {
+  const fields = readNewLeader(formData);
+  if (!fields.ok) return fields;
+  const existing = await getUserByEmail(fields.email);
+  if (existing) return { ok: false as const, error: "이미 등록된 이메일입니다." };
+  const user = await createUser({
+    email: fields.email,
+    passwordHash: await hashPassword(fields.password),
+    name: fields.name,
+    role: "LEADER",
+  });
+  return { ok: true as const, user };
+}
+
+function officerSeatError(result: "seat_taken" | "already_officer") {
+  if (result === "seat_taken") return "이미 맡은 사람이 있습니다. 비운 뒤에 지정해 주세요.";
+  return "이 사람은 올해 다른 직책이 있습니다.";
+}
+
+export async function appointOfficerAction(formData: FormData) {
+  if (!(await requirePastor())) return { ok: false as const, error: "임원 직책은 목사만 지정할 수 있습니다." };
+  const title = String(formData.get("title") ?? "");
+  if (!OFFICER_TITLES.includes(title as OfficerTitle)) return { ok: false as const, error: "잘못된 직책입니다." };
+  const userId = String(formData.get("userId") ?? "");
+  const leader = await getUserById(userId);
+  if (!leader || leader.role !== "LEADER") return { ok: false as const, error: "리더 계정을 선택해 주세요." };
+
+  const term = await getCurrentTerm();
+  const result = await appointOfficer(term.year, userId, title as OfficerTitle);
+  if (result !== "ok") return { ok: false as const, error: officerSeatError(result) };
+
   revalidatePath("/admin/handover");
-  return { ok: true };
+  revalidatePath("/groups");
+  return { ok: true as const };
+}
+
+export async function createOfficerAction(formData: FormData) {
+  if (!(await requirePastor())) return { ok: false as const, error: "임원 직책은 목사만 지정할 수 있습니다." };
+  const title = String(formData.get("title") ?? "");
+  if (!OFFICER_TITLES.includes(title as OfficerTitle)) return { ok: false as const, error: "잘못된 직책입니다." };
+
+  const term = await getCurrentTerm();
+  const active = await listActiveOfficers(term.year);
+  if (active.some((appointment) => appointment.title === title)) {
+    return { ok: false as const, error: "이미 맡은 사람이 있습니다. 비운 뒤에 지정해 주세요." };
+  }
+
+  const created = await createLeaderAccount(formData);
+  if (!created.ok) return created;
+
+  const result = await appointOfficer(term.year, created.user.id, title as OfficerTitle);
+  if (result !== "ok") return { ok: false as const, error: officerSeatError(result) };
+
+  revalidatePath("/admin/handover");
+  revalidatePath("/groups");
+  return { ok: true as const };
+}
+
+export async function vacateOfficerAction(formData: FormData) {
+  if (!(await requirePastor())) return { ok: false as const, error: "임원 직책은 목사만 비울 수 있습니다." };
+  const title = String(formData.get("title") ?? "");
+  if (!OFFICER_TITLES.includes(title as OfficerTitle)) return { ok: false as const, error: "잘못된 직책입니다." };
+  const term = await getCurrentTerm();
+  await vacateOfficer(term.year, title as OfficerTitle);
+  revalidatePath("/admin/handover");
+  revalidatePath("/groups");
+  return { ok: true as const };
+}
+
+export async function createLeaderAction(formData: FormData) {
+  if (!(await requireAppManager())) return { ok: false as const, error: "권한이 없습니다." };
+  const created = await createLeaderAccount(formData);
+  if (!created.ok) return created;
+  revalidatePath("/groups");
+  revalidatePath("/admin/handover");
+  return { ok: true as const };
 }
 
 async function pushServingDutyAssignmentIfChanged(

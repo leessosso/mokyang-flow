@@ -9,6 +9,7 @@ import type {
   Group,
   GroupLeaderTerm,
   LeaderMeeting,
+  OfficerAppointment,
   Member,
   MeetingAsset,
   PastoralMessage,
@@ -36,6 +37,7 @@ export const usersCol = lazyCollection<Omit<User, "id">>("users");
 export const groupsCol = lazyCollection<Omit<Group, "id">>("groups");
 export const membersCol = lazyCollection<Omit<Member, "id">>("members");
 export const groupLeaderTermsCol = lazyCollection<Omit<GroupLeaderTerm, "id">>("groupLeaderTerms");
+export const officerAppointmentsCol = lazyCollection<Omit<OfficerAppointment, "id">>("officerAppointments");
 export const leaderMeetingsCol = lazyCollection<Omit<LeaderMeeting, "id">>("leaderMeetings");
 export const meetingAssetsCol = lazyCollection<Omit<MeetingAsset, "id">>("meetingAssets");
 export const worshipServicesCol = lazyCollection<Omit<WorshipService, "id">>("worshipServices");

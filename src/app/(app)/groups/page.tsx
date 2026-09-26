@@ -1,21 +1,24 @@
 import Link from "next/link";
-import { createGroup } from "@/app/actions";
+import { createGroup, createLeaderAction } from "@/app/actions";
+import { AddLeaderForm } from "@/components/add-leader-form";
 import { Button, Card, CardHeader, Input, Label } from "@/components/ui";
 import { currentUserCanManageApp } from "@/lib/auth";
 import { termLabel } from "@/lib/format";
 import { listAllMembers, listGroups, listUnassignedMembers } from "@/lib/store/groups";
+import { listActiveOfficers } from "@/lib/store/officers";
 import { getCurrentTerm } from "@/lib/store/settings";
 import { getUsersByIds, listUsersByRole } from "@/lib/store/users";
 
 export default async function GroupsPage() {
   const canAdmin = await currentUserCanManageApp();
 
-  const [term, groups, unassigned, members, leaderUsers] = await Promise.all([
-    getCurrentTerm(),
+  const term = await getCurrentTerm();
+  const [groups, unassigned, members, leaderUsers, officers] = await Promise.all([
     listGroups(),
     canAdmin ? listUnassignedMembers() : Promise.resolve([]),
     listAllMembers(),
     canAdmin ? listUsersByRole("LEADER") : Promise.resolve([]),
+    canAdmin ? listActiveOfficers(term.year) : Promise.resolve([]),
   ]);
   const leaders = await getUsersByIds(groups.map((g) => g.currentLeaderId ?? "").filter(Boolean));
 
@@ -24,9 +27,27 @@ export default async function GroupsPage() {
       <div>
         <h2 className="text-xl font-semibold">가족</h2>
         <p className="text-sm text-stone-600">
-          {termLabel(term)} 구성입니다. 가족은 1년에 상반기·하반기 두 번 짜고, 가장도 그때 정합니다.
+          {termLabel(term)} 구성입니다. 가족과 가장은 이 학기에 다시 정합니다.
         </p>
       </div>
+
+      {canAdmin && officers.length === 0 && (
+        <Card className="p-4 sm:p-5">
+          <p className="text-sm text-stone-700">
+            올해 임원이 아직 없습니다.{" "}
+            <Link href="/admin/handover" className="font-medium text-stone-900 underline">
+              가장·임원 관리
+            </Link>
+            에서 목사가 임원을 앉힌 뒤 가족을 구성합니다.
+          </p>
+        </Card>
+      )}
+
+      {canAdmin && (
+        <Card className="p-4 sm:p-5">
+          <AddLeaderForm action={createLeaderAction} />
+        </Card>
+      )}
 
       {canAdmin && (
         <Card className="p-4 sm:p-5">

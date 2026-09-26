@@ -17,6 +17,16 @@ export const OFFICER_TITLES = [
 
 export type OfficerTitle = (typeof OFFICER_TITLES)[number];
 
+/** 그해 임원. 상반기에 정하고 하반기까지 유지한다. */
+export type OfficerAppointment = {
+  id: string;
+  userId: string;
+  year: number;
+  title: OfficerTitle;
+  startedAt: string;
+  endedAt: string | null;
+};
+
 /** 리더 모임에서 그 주 담당을 정하는 섬김 항목. 배정하면 해당 사용자에게 푸시가 간다. */
 export const SERVING_DUTIES = [
   { key: "prayer_meeting_lead", label: "기도회 인도" },
