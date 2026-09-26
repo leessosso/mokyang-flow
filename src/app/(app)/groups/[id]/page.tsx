@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { assignMemberToGroup, createMember } from "@/app/actions";
+import { assignMemberToGroup, createMember, importGroupMembers } from "@/app/actions";
+import { MemberBulkImport } from "@/components/member-bulk-import";
 import { Button, Card, CardHeader, Input } from "@/components/ui";
 import { currentUserCanManageApp } from "@/lib/auth";
 import { formatDateKo, termLabel } from "@/lib/format";
@@ -59,24 +60,27 @@ export default async function GroupDetailPage({
           )}
         </ul>
         {canAdmin && (
-          <form
-            action={async (fd) => {
-              "use server";
-              await createMember(
-                id,
-                fd.get("name") as string,
-                (fd.get("phone") as string) || undefined,
-              );
-            }}
-            className="border-t border-stone-100 p-4 sm:p-5"
-          >
-            <h3 className="text-sm font-medium">가족원 추가</h3>
-            <div className="mt-2 grid gap-2 sm:grid-cols-3">
-              <Input name="name" required placeholder="이름" />
-              <Input name="phone" placeholder="연락처" />
-              <Button type="submit">추가</Button>
-            </div>
-          </form>
+          <>
+            <form
+              action={async (fd) => {
+                "use server";
+                await createMember(
+                  id,
+                  fd.get("name") as string,
+                  (fd.get("phone") as string) || undefined,
+                );
+              }}
+              className="border-t border-stone-100 p-4 sm:p-5"
+            >
+              <h3 className="text-sm font-medium">가족원 추가</h3>
+              <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                <Input name="name" required placeholder="이름" />
+                <Input name="phone" placeholder="연락처" />
+                <Button type="submit">추가</Button>
+              </div>
+            </form>
+            <MemberBulkImport action={importGroupMembers.bind(null, id)} />
+          </>
         )}
       </Card>
 

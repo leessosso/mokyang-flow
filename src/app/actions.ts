@@ -15,6 +15,7 @@ import {
   handoverGroupLeader,
   listAllMembers,
   listCurrentLeaderUserIds,
+  listMembersByGroup,
 } from "@/lib/store/groups";
 import { appointOfficer, endOfficerYear, listActiveOfficers, vacateOfficer } from "@/lib/store/officers";
 import { hashPassword } from "@/lib/password";
@@ -59,6 +60,7 @@ import {
   type SaveResponseEntry,
 } from "@/lib/store/surveys";
 import { parseNamesFromFile } from "@/lib/qr-import";
+import { parseMemberRowsFromFile, parseMemberRowsFromText } from "@/lib/member-import";
 import { uploadMeetingFile } from "@/lib/storage";
 import { getCurrentTerm, setCurrentTerm } from "@/lib/store/settings";
 import { nextTerm } from "@/lib/term";
@@ -503,6 +505,49 @@ export async function createMember(groupId: string, name: string, phone?: string
   await createMemberStore(groupId, name, phone || null);
   revalidatePath(`/groups/${groupId}`);
   return { ok: true };
+}
+
+const MAX_MEMBER_IMPORT = 500;
+
+export async function importGroupMembers(groupId: string, formData: FormData) {
+  if (!(await requireAppManager())) return { ok: false as const, error: "권한이 없습니다." };
+  const group = await getGroupById(groupId);
+  if (!group) return { ok: false as const, error: "가족을 찾지 못했습니다." };
+
+  const file = formData.get("file");
+  let rows;
+  try {
+    if (file instanceof File && file.size > 0) {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      rows = await parseMemberRowsFromFile(buffer, file.name || "members.csv");
+    } else {
+      rows = parseMemberRowsFromText(String(formData.get("text") ?? ""));
+    }
+  } catch {
+    return { ok: false as const, error: "파일을 읽지 못했습니다. CSV 또는 xlsx로 저장해 주세요." };
+  }
+
+  if (rows.length === 0) return { ok: false as const, error: "넣을 이름이 없습니다." };
+  if (rows.length > MAX_MEMBER_IMPORT) {
+    return { ok: false as const, error: `한 번에 ${MAX_MEMBER_IMPORT}명까지 넣을 수 있습니다.` };
+  }
+
+  const existing = new Set((await listMembersByGroup(groupId)).map((member) => member.name.trim()));
+  let added = 0;
+  let skipped = 0;
+  for (const row of rows) {
+    if (existing.has(row.name)) {
+      skipped += 1;
+      continue;
+    }
+    await createMemberStore(groupId, row.name, row.phone);
+    existing.add(row.name);
+    added += 1;
+  }
+
+  revalidatePath("/groups");
+  revalidatePath(`/groups/${groupId}`);
+  return { ok: true as const, added, skipped };
 }
 
 export async function setGroupLeader(groupId: string, leaderId: string) {
