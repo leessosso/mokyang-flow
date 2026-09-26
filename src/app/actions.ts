@@ -63,7 +63,7 @@ import { parseNamesFromFile } from "@/lib/qr-import";
 import { parseMemberRowsFromFile, parseMemberRowsFromText } from "@/lib/member-import";
 import { uploadMeetingFile } from "@/lib/storage";
 import { getCurrentTerm, setCurrentTerm } from "@/lib/store/settings";
-import { nextTerm } from "@/lib/term";
+import { nextTerm, sameTerm } from "@/lib/term";
 import { OFFICER_TITLES, type OfficerTitle } from "@/lib/types";
 import type {
   AnnouncementAudience,
@@ -500,19 +500,36 @@ export async function assignMemberToGroup(memberId: string, groupId: string) {
   return { ok: true };
 }
 
+async function currentTermGroup(groupId: string) {
+  const group = await getGroupById(groupId);
+  if (!group) return { ok: false as const, error: "가족을 선택해 주세요." };
+  const term = await getCurrentTerm();
+  if (!sameTerm({ year: group.year, half: group.half }, term)) {
+    return { ok: false as const, error: "이번 학기 가족에만 넣을 수 있습니다." };
+  }
+  return { ok: true as const, group };
+}
+
 export async function createMember(groupId: string, name: string, phone?: string) {
   if (!(await requireAppManager())) return { error: "권한이 없습니다." };
-  await createMemberStore(groupId, name, phone || null);
-  revalidatePath(`/groups/${groupId}`);
+  const trimmed = name.trim();
+  if (!trimmed) return { error: "이름을 입력해 주세요." };
+  const target = await currentTermGroup(groupId);
+  if (!target.ok) return { error: target.error };
+  await createMemberStore(target.group.id, trimmed, phone?.trim() || null);
+  revalidatePath("/groups");
+  revalidatePath("/admin/members");
+  revalidatePath(`/groups/${target.group.id}`);
   return { ok: true };
 }
 
 const MAX_MEMBER_IMPORT = 500;
 
-export async function importGroupMembers(groupId: string, formData: FormData) {
+export async function importGroupMembers(formData: FormData) {
   if (!(await requireAppManager())) return { ok: false as const, error: "권한이 없습니다." };
-  const group = await getGroupById(groupId);
-  if (!group) return { ok: false as const, error: "가족을 찾지 못했습니다." };
+  const target = await currentTermGroup(String(formData.get("groupId") ?? ""));
+  if (!target.ok) return { ok: false as const, error: target.error };
+  const groupId = target.group.id;
 
   const file = formData.get("file");
   let rows;
@@ -546,6 +563,7 @@ export async function importGroupMembers(groupId: string, formData: FormData) {
   }
 
   revalidatePath("/groups");
+  revalidatePath("/admin/members");
   revalidatePath(`/groups/${groupId}`);
   return { ok: true as const, added, skipped };
 }
