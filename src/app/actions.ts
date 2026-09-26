@@ -512,7 +512,9 @@ export async function importAttendanceQr(sundayId: string, service: "s13" | "s4"
  * mode=participation: 가족원마다 참여 여부만 받는다.
  * mode=questions: q1_label..q6_label / q1_type..q6_type 으로 질문을 받는다.
  */
-export async function createEventSurvey(formData: FormData) {
+export async function createEventSurvey(
+  formData: FormData,
+): Promise<{ error: string } | { ok: true; id: string }> {
   if (!(await requireAppManager())) return { error: "권한이 없습니다." };
 
   const mode = formData.get("mode");
