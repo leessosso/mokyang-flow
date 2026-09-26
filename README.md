@@ -168,9 +168,6 @@ npm run dev
 | 역할 | 이메일 |
 |------|--------|
 | 목사 | `pastor@church.demo` |
-| 1가족 가장 | `leader1@church.demo` |
-| 2가족 가장 | `leader2@church.demo` |
-| 3가족 가장 (이전 가장 이력 포함) | `leader3@church.demo` |
 | 2026 회장 임범석 | `imbeomseok@test.church` |
 | 2026 부회장 김광림 | `kimgwangrim@test.church` |
 | 2026 총무 이혜미 | `leehyemi@test.church` |
@@ -180,7 +177,7 @@ npm run dev
 | 2026 회계 정효정 | `jeonghyojeong@test.church` |
 | 2026 부회계 우재황 | `woojaehwang@test.church` |
 
-시드에는 이번 학기 가족 3개, 가족원 10명, 리더 모임 1건, 1가족 보고 방(메시지 2건), 주일 예배 좌석 1건이 들어 있습니다.
+시드에는 이번 학기 가족 24개, 2026년 임원 8명, 리더 모임 1건, 주일 예배 좌석 1건이 들어 있습니다.
 
 ## 배정 모자
 

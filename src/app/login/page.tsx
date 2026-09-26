@@ -58,7 +58,7 @@ export default async function LoginPage({
         >
           <div>
             <Label>이메일</Label>
-            <Input name="email" type="email" required placeholder="leader1@church.demo" />
+            <Input name="email" type="email" required placeholder="pastor@church.demo" />
           </div>
           <div>
             <Label>비밀번호</Label>
@@ -70,8 +70,6 @@ export default async function LoginPage({
           <p className="font-medium text-stone-800">데모 계정</p>
           <ul className="mt-2 space-y-1">
             <li>목사: pastor@church.demo</li>
-            <li>1가족 가장: leader1@church.demo</li>
-            <li>2가족 가장: leader2@church.demo</li>
             <li>2026 회장: imbeomseok@test.church</li>
             <li>비밀번호: demo1234</li>
           </ul>
