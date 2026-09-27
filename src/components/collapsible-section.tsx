@@ -15,7 +15,7 @@ export function CollapsibleSection({
   const panelId = useId();
 
   return (
-    <div className="rounded-xl border border-stone-200 bg-white shadow-sm">
+    <div className="rounded-2xl border border-border bg-surface shadow-sm">
       <button
         type="button"
         aria-expanded={open}
