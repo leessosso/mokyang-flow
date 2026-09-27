@@ -2,9 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import {
-  publishMeetingCommentary,
   setPrayerLeader,
-  unpublishMeetingCommentary,
   updateMeetingNotes,
   uploadMeetingAsset,
 } from "@/app/actions";
@@ -181,8 +179,6 @@ export default async function MeetingDetailPage({
             assets={commentaryAssets}
             emptyLabel="아직 해설지 없음"
             canPublishCommentary={canAdmin}
-            publishAction={(assetId) => publishMeetingCommentary(id, assetId)}
-            unpublishAction={(assetId) => unpublishMeetingCommentary(id, assetId)}
           />
           {canAdmin && (
             <form
