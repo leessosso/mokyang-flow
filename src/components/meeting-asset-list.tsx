@@ -1,6 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import {
+  publishMeetingCommentary,
+  unpublishMeetingCommentary,
+} from "@/app/actions";
 import { Button } from "@/components/ui";
 import {
   getAssetPreviewKind,
@@ -14,8 +18,6 @@ type Props = {
   assets: MeetingAsset[];
   emptyLabel: string;
   canPublishCommentary: boolean;
-  publishAction?: (assetId: string) => Promise<{ ok?: boolean; error?: string }>;
-  unpublishAction?: (assetId: string) => Promise<{ ok?: boolean; error?: string }>;
 };
 
 export function MeetingAssetList({
@@ -23,8 +25,6 @@ export function MeetingAssetList({
   assets,
   emptyLabel,
   canPublishCommentary,
-  publishAction,
-  unpublishAction,
 }: Props) {
   const [preview, setPreview] = useState<{
     url: string;
@@ -128,13 +128,13 @@ export function MeetingAssetList({
                   >
                     다운로드
                   </a>
-                  {isCommentary && canPublishCommentary && publishAction && unpublishAction && (
+                  {isCommentary && canPublishCommentary && (
                     published ? (
                       <Button
                         type="button"
                         variant="ghost"
                         className="px-3 py-1.5 text-xs"
-                        onClick={() => void unpublishAction(asset.id)}
+                        onClick={() => void unpublishMeetingCommentary(meetingId, asset.id)}
                       >
                         비공개로 되돌리기
                       </Button>
@@ -142,7 +142,7 @@ export function MeetingAssetList({
                       <Button
                         type="button"
                         className="px-3 py-1.5 text-xs"
-                        onClick={() => void publishAction(asset.id)}
+                        onClick={() => void publishMeetingCommentary(meetingId, asset.id)}
                       >
                         공개
                       </Button>
