@@ -72,7 +72,7 @@ export default async function AttendanceGroupPage({
         <p className="mt-1 text-sm text-stone-500">
           {special
             ? `참석 ${totals.s13.present}`
-            : `1-3부 참석 ${totals.s13.present} · 방송 ${totals.s13.broadcast} · QR ${totals.s13.qr} · 4부 참석 ${totals.s4.present} · 방송 ${totals.s4.broadcast} · QR ${totals.s4.qr} · 가족모임 ${totals.familyMeeting}`}
+            : `4부 참석 ${totals.s4.present} · 방송 ${totals.s4.broadcast} · QR ${totals.s4.qr} · 1-3부 참석 ${totals.s13.present} · 방송 ${totals.s13.broadcast} · QR ${totals.s13.qr} · 가족모임 ${totals.familyMeeting}`}
         </p>
       </div>
 
@@ -105,10 +105,10 @@ export default async function AttendanceGroupPage({
                     <th className="px-2 py-2">참석</th>
                   ) : (
                     <>
-                      <th className="px-2 py-2">1-3부</th>
-                      <th className="px-2 py-2">1-3부 QR</th>
                       <th className="px-2 py-2">4부</th>
                       <th className="px-2 py-2">4부 QR</th>
+                      <th className="px-2 py-2">1-3부</th>
+                      <th className="px-2 py-2">1-3부 QR</th>
                       <th className="px-2 py-2">가족모임</th>
                     </>
                   )}
@@ -147,29 +147,6 @@ export default async function AttendanceGroupPage({
                                 <label key={opt.value} className="flex items-center gap-1 text-xs">
                                   <input
                                     type="radio"
-                                    name={`s13_${m.id}`}
-                                    value={opt.value}
-                                    defaultChecked={s13Status === opt.value}
-                                  />
-                                  {opt.label}
-                                </label>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="px-2 py-2">
-                            <input
-                              type="checkbox"
-                              name={`qr13_${m.id}`}
-                              defaultChecked={mark?.s13.qr ?? false}
-                              disabled={!canEditQr}
-                            />
-                          </td>
-                          <td className="px-2 py-2">
-                            <div className="flex gap-3">
-                              {STATUS_OPTIONS.map((opt) => (
-                                <label key={opt.value} className="flex items-center gap-1 text-xs">
-                                  <input
-                                    type="radio"
                                     name={`s4_${m.id}`}
                                     value={opt.value}
                                     defaultChecked={s4Status === opt.value}
@@ -184,6 +161,29 @@ export default async function AttendanceGroupPage({
                               type="checkbox"
                               name={`qr4_${m.id}`}
                               defaultChecked={mark?.s4.qr ?? false}
+                              disabled={!canEditQr}
+                            />
+                          </td>
+                          <td className="px-2 py-2">
+                            <div className="flex gap-3">
+                              {STATUS_OPTIONS.map((opt) => (
+                                <label key={opt.value} className="flex items-center gap-1 text-xs">
+                                  <input
+                                    type="radio"
+                                    name={`s13_${m.id}`}
+                                    value={opt.value}
+                                    defaultChecked={s13Status === opt.value}
+                                  />
+                                  {opt.label}
+                                </label>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-2 py-2">
+                            <input
+                              type="checkbox"
+                              name={`qr13_${m.id}`}
+                              defaultChecked={mark?.s13.qr ?? false}
                               disabled={!canEditQr}
                             />
                           </td>

@@ -172,7 +172,7 @@ export async function notifyLeadersOfAttendanceReminder(options: {
 
   await sendWebPushToTokens(tokens, {
     title: `주일 출석 · ${options.sundayTitle}`,
-    body: `${dateLabel} — 가족원 1-3부·4부·가족모임 출석을 입력해 주세요.`,
+    body: `${dateLabel} — 가족원 4부·1-3부·가족모임 출석을 입력해 주세요.`,
     url: `/attendance/${options.sundayId}`,
     tag: `attendance-${options.sundayId}`,
   });
