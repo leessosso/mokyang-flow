@@ -33,17 +33,17 @@ export default async function LoginPage({
         </div>
         {error ? (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-            이메일 또는 비밀번호가 올바르지 않습니다. 아래 데모 계정을 확인해 주세요.
+            이름(또는 이메일) 또는 비밀번호가 올바르지 않습니다. 아래 데모 계정을 확인해 주세요.
           </p>
         ) : null}
         <form
           action={async (formData) => {
             "use server";
-            const email = formData.get("email") as string;
+            const identifier = formData.get("identifier") as string;
             const password = formData.get("password") as string;
             try {
               await signIn("credentials", {
-                email,
+                identifier,
                 password,
                 redirectTo: "/dashboard",
               });
@@ -57,8 +57,8 @@ export default async function LoginPage({
           className="space-y-4"
         >
           <div>
-            <Label>이메일</Label>
-            <Input name="email" type="email" required placeholder="pastor@church.demo" />
+            <Label>이름 또는 이메일</Label>
+            <Input name="identifier" type="text" required placeholder="임범석 또는 pastor@church.demo" autoComplete="username" />
           </div>
           <div>
             <Label>비밀번호</Label>
@@ -69,8 +69,8 @@ export default async function LoginPage({
         <div className="mt-6 rounded-lg bg-stone-50 p-4 text-xs text-stone-600">
           <p className="font-medium text-stone-800">데모 계정</p>
           <ul className="mt-2 space-y-1">
-            <li>목사: pastor@church.demo</li>
-            <li>2026 회장: imbeomseok@test.church</li>
+            <li>목사: 이름 <span className="font-medium text-stone-800">김목사</span> 또는 pastor@church.demo</li>
+            <li>2026 회장: 이름 <span className="font-medium text-stone-800">임범석</span> 또는 imbeomseok@test.church</li>
             <li>비밀번호: demo1234</li>
           </ul>
         </div>
