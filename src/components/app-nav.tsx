@@ -10,6 +10,11 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+const linkBase = "whitespace-nowrap rounded-lg px-3 py-2 text-sm transition-colors";
+const linkInactive = "text-stone-700 hover:bg-stone-100";
+const linkActive =
+  "bg-primary/10 font-medium text-primary";
+
 export function AppNav({
   items,
   variant,
@@ -28,11 +33,7 @@ export function AppNav({
             <Link
               key={item.href}
               href={item.href}
-              className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm ${
-                active
-                  ? "bg-stone-800 text-white"
-                  : "text-stone-700 hover:bg-stone-100"
-              }`}
+              className={`${linkBase} ${active ? linkActive : linkInactive}`}
             >
               {item.label}
             </Link>
@@ -50,11 +51,7 @@ export function AppNav({
           <Link
             key={item.href}
             href={item.href}
-            className={`rounded-lg px-3 py-2 text-sm ${
-              active
-                ? "bg-stone-800 font-medium text-white"
-                : "text-stone-700 hover:bg-stone-100"
-            }`}
+            className={`${linkBase} ${active ? linkActive : linkInactive}`}
           >
             {item.label}
           </Link>

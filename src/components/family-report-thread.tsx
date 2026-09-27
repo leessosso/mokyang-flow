@@ -62,7 +62,7 @@ export function FamilyReportThread({
               <div className="flex items-center gap-2">
                 <p className="text-xs font-medium opacity-70">{m.author.name}</p>
                 {tag && (
-                  <span className="rounded-full bg-stone-800/10 px-2 py-0.5 text-[10px] font-medium text-stone-700">
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                     {tag}
                   </span>
                 )}

@@ -15,7 +15,7 @@ export default async function LoginPage({
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-stone-100 px-4 lg:justify-start lg:px-0">
-      <div className="hidden h-screen w-[42%] max-w-xl flex-col justify-end bg-stone-800 px-12 py-16 text-stone-100 lg:flex">
+      <div className="hidden h-screen w-[42%] max-w-xl flex-col justify-end bg-primary px-12 py-16 text-white lg:flex">
         <h1 className="text-4xl font-semibold">2청년회 운영</h1>
         <p className="mt-4 max-w-sm text-sm leading-6 text-stone-300">
           리더 모임 자료, 배정 모자, 가족 보고를 한곳에서 관리합니다.
