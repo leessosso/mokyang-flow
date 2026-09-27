@@ -1,7 +1,6 @@
 import { generateKeyPairSync } from "node:crypto";
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
 
 function usingEmulator() {
   return Boolean(
@@ -29,11 +28,9 @@ function emulatorCertificate(projectId: string) {
 
 let app: App | undefined;
 let firestore: Firestore | undefined;
-let storageBucket: ReturnType<ReturnType<typeof getStorage>["bucket"]> | undefined;
-
 /**
  * 본 앱(가족·가장·리더모임·돌봄카드)의 유일한 데이터 계층입니다.
- * Firestore를 관계형 데이터에, Storage를 교안/해설지/악보 파일에 씁니다.
+ * Firestore를 관계형 데이터에 씁니다. 교안/해설지/악보는 Vercel Blob(`src/lib/storage.ts`)에 둡니다.
  * 배정모자(public/sorting-hat)는 별도로 Realtime Database를 씁니다 — 여기서 다루지 않습니다.
  *
  * 초기화는 첫 사용 시점에만 수행합니다. `next build`의 페이지 데이터 수집 단계에서는
@@ -85,7 +82,3 @@ function storageBucketName(projectId = process.env.FIREBASE_PROJECT_ID ?? "demo-
   return process.env.FIREBASE_STORAGE_BUCKET ?? `${projectId}.appspot.com`;
 }
 
-export function getBucket() {
-  if (!storageBucket) storageBucket = getStorage(ensureApp()).bucket(storageBucketName());
-  return storageBucket;
-}
