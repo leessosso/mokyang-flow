@@ -51,7 +51,7 @@ export default async function FamilyReportPage({
   return (
     <div className="-mx-4 space-y-3 sm:mx-0">
       {isPastorOrAdmin(user.role) && (
-        <Link href="/reports" className="px-4 text-sm text-stone-600 underline sm:px-0">← 가족 보고 목록</Link>
+        <Link href="/reports" className="px-4 text-sm text-stone-600 underline sm:px-0">← 돌봄카드 목록</Link>
       )}
       <Card className="overflow-hidden rounded-none border-x-0 shadow-none sm:max-w-3xl sm:rounded-xl sm:border-x sm:shadow-sm">
         <div className="flex items-center justify-between gap-3 border-b border-stone-100 px-3 py-2">

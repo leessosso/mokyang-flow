@@ -63,7 +63,7 @@ export default async function AttendanceListPage() {
             <p className="mt-1 text-xs text-stone-500">
               {formatDateKo(dateKeyToKstNoonIso(weeklyAttendanceCloseDateKey(currentKey)))}까지 입력
             </p>
-            <WeekTotals totals={totalsById.get(current.sunday.id)} />
+            <WeekTotals totals={totalsById.get(current.sunday.id)} showQr={canAdmin} />
           </Link>
         </Card>
       )}
@@ -78,7 +78,7 @@ export default async function AttendanceListPage() {
               >
                 <p className="font-medium">{week.sunday.title}</p>
                 <p className="text-sm text-stone-500">{formatDateKo(week.sunday.date)}</p>
-                <WeekTotals totals={totalsById.get(week.sunday.id)} />
+                <WeekTotals totals={totalsById.get(week.sunday.id)} showQr={canAdmin} />
               </Link>
             </li>
           ))}
@@ -151,20 +151,24 @@ export default async function AttendanceListPage() {
 
 function WeekTotals({
   totals,
+  showQr,
 }: {
   totals?: {
     s13: { present: number; broadcast: number; qr: number };
     s4: { present: number; broadcast: number; qr: number };
     familyMeeting: number;
   };
+  showQr: boolean;
 }) {
   if (!totals) {
     return <p className="mt-1 text-xs text-stone-500">아직 입력 전</p>;
   }
+  const qr4 = showQr ? ` · QR ${totals.s4.qr}` : "";
+  const qr13 = showQr ? ` · QR ${totals.s13.qr}` : "";
   return (
     <p className="mt-1 text-xs text-stone-500">
-      4부 참석 {totals.s4.present} · 방송 {totals.s4.broadcast} · QR {totals.s4.qr}
-      {" · "}1-3부 참석 {totals.s13.present} · 방송 {totals.s13.broadcast} · QR {totals.s13.qr}
+      4부 출석 {totals.s4.present} · 온라인 {totals.s4.broadcast}{qr4}
+      {" · "}1-3부 출석 {totals.s13.present} · 온라인 {totals.s13.broadcast}{qr13}
       {" · "}가족모임 {totals.familyMeeting}
     </p>
   );

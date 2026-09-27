@@ -18,7 +18,7 @@ export default async function MeetingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold">리더 모임</h2>
+        <h2 className="text-xl font-semibold">리더모임</h2>
         <p className="text-sm text-stone-600">
           매주 기도회, 말씀 교안 나눔, 교안 해설, 그 주 광고 순으로 진행합니다. 나눔에는 가장, 임원, 게스트(부가장·사역팀장)가 함께합니다.
         </p>
@@ -47,7 +47,7 @@ export default async function MeetingsPage() {
             >
               <div>
                 <Label>제목</Label>
-                <Input name="title" required placeholder="4월 1주 리더 모임" />
+                <Input name="title" required placeholder="4월 1주 리더모임" />
               </div>
               <div>
                 <Label>일시</Label>

@@ -4,10 +4,10 @@ import { auth } from "@/auth";
 import {
   setPrayerLeader,
   updateMeetingNotes,
-  uploadMeetingAsset,
 } from "@/app/actions";
 import { MeetingAssetList } from "@/components/meeting-asset-list";
-import { Button, Card, CardHeader, Label, Textarea } from "@/components/ui";
+import { MeetingFileUpload } from "@/components/meeting-file-upload";
+import { Button, Card, CardHeader, Textarea } from "@/components/ui";
 import { canViewMeetingAsset } from "@/lib/meeting-assets";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDateTimeKo } from "@/lib/format";
@@ -111,17 +111,7 @@ export default async function MeetingDetailPage({
             canPublishCommentary={false}
           />
           {(isPrayerLeader || canAdmin) && prayerLeaderId && (
-            <form
-              action={async (fd) => {
-                "use server";
-                await uploadMeetingAsset(id, "SCORE", fd);
-              }}
-              className="space-y-2 border-t border-stone-100 pt-3"
-            >
-              <Label>악보 업로드</Label>
-              <input type="file" name="file" required className="text-sm" />
-              <Button type="submit" variant="secondary">올리기</Button>
-            </form>
+            <MeetingFileUpload meetingId={id} kind="SCORE" label="악보 업로드" />
           )}
         </div>
       </Card>
@@ -129,7 +119,7 @@ export default async function MeetingDetailPage({
       <Card>
         <CardHeader
           title="2. 말씀 교안 나눔"
-          subtitle="배정 모자로 가장·임원·게스트(부가장·사역팀장) 조를 짠 뒤, 이번 주 교안으로 나눕니다."
+          subtitle="배정모자로 가장·임원·게스트(부가장·사역팀장) 조를 짠 뒤, 이번 주 교안으로 나눕니다."
         />
         <div className="space-y-4 p-4 sm:p-5">
           <MeetingAssetList
@@ -139,17 +129,7 @@ export default async function MeetingDetailPage({
             canPublishCommentary={false}
           />
           {canAdmin && (
-            <form
-              action={async (fd) => {
-                "use server";
-                await uploadMeetingAsset(id, "LESSON", fd);
-              }}
-              className="space-y-2 border-t border-stone-100 pt-3"
-            >
-              <Label>교안 업로드</Label>
-              <input type="file" name="file" required className="text-sm" />
-              <Button type="submit" variant="secondary">올리기</Button>
-            </form>
+            <MeetingFileUpload meetingId={id} kind="LESSON" label="교안 업로드" />
           )}
 
           <div className="-mx-4 divide-y divide-stone-100 border-t border-stone-100 sm:-mx-5">
@@ -157,7 +137,7 @@ export default async function MeetingDetailPage({
               href={`${SORTING_HAT_USER_PATH}${hatQuery}`}
               className="block px-4 py-3 text-sm font-medium text-stone-900 transition hover:bg-stone-50 focus-visible:bg-stone-50 focus-visible:outline-none sm:px-5"
             >
-              배정 모자 열기
+              배정모자 열기
             </Link>
             {canAdmin && (
               <Link
@@ -181,20 +161,12 @@ export default async function MeetingDetailPage({
             canPublishCommentary={canAdmin}
           />
           {canAdmin && (
-            <form
-              action={async (fd) => {
-                "use server";
-                await uploadMeetingAsset(id, "LESSON_COMMENTARY", fd);
-              }}
-              className="space-y-2 border-t border-stone-100 pt-3"
-            >
-              <Label>교안 해설지 업로드</Label>
-              <p className="text-xs text-stone-500">
-                업로드 직후 비공개입니다. 가장에게 보이려면 「공개」를 눌러 주세요.
-              </p>
-              <input type="file" name="file" required className="text-sm" />
-              <Button type="submit" variant="secondary">올리기</Button>
-            </form>
+            <MeetingFileUpload
+              meetingId={id}
+              kind="LESSON_COMMENTARY"
+              label="교안 해설지 업로드"
+              hint="업로드 직후 비공개입니다. 가장에게 보이려면 「공개」를 눌러 주세요."
+            />
           )}
         </div>
       </Card>

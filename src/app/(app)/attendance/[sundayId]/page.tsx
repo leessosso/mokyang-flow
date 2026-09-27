@@ -135,11 +135,11 @@ export default async function AttendanceSundayPage({
                   <th className="px-2 py-2">참석</th>
                 ) : (
                   <>
-                    <th className="px-2 py-2">4부 참석</th>
-                    <th className="px-2 py-2">4부 방송</th>
+                    <th className="px-2 py-2">4부 출석</th>
+                    <th className="px-2 py-2">4부 온라인</th>
                     <th className="px-2 py-2">4부 QR</th>
-                    <th className="px-2 py-2">1-3부 참석</th>
-                    <th className="px-2 py-2">1-3부 방송</th>
+                    <th className="px-2 py-2">1-3부 출석</th>
+                    <th className="px-2 py-2">1-3부 온라인</th>
                     <th className="px-2 py-2">1-3부 QR</th>
                     <th className="px-2 py-2">가족모임</th>
                   </>

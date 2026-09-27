@@ -8,7 +8,7 @@ export const SORTING_HAT_ADMIN_EMBED = "/sorting-hat/admin.html";
 
 const MEETING_RETURN = /^\/meetings\/([A-Za-z0-9_-]+)$/;
 
-/** 리더 모임에서 배정 모자로 들어올 때 되돌릴 경로. 모임 상세만 허용한다. */
+/** 리더모임에서 배정모자로 들어올 때 되돌릴 경로. 모임 상세만 허용한다. */
 export function meetingReturnPath(meetingId: string): string {
   return `/meetings/${meetingId}`;
 }

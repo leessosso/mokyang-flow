@@ -97,7 +97,7 @@ export default async function GroupDetailPage({
         className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
       >
         <Card className="h-full transition hover:border-stone-300 hover:bg-stone-50">
-          <CardHeader title="가족 보고" subtitle="목사와 가장이 나누는 방" />
+          <CardHeader title="돌봄카드" subtitle="목사와 가장이 나누는 방" />
         </Card>
       </Link>
 

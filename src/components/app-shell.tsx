@@ -14,14 +14,12 @@ function navFor(
   const items: NavItem[] = [
     { href: "/dashboard", label: "대시보드" },
     { href: "/attendance", label: "출석" },
+    { href: "/meetings", label: "리더모임" },
+    { href: familyReportHref, label: "돌봄카드" },
     { href: "/surveys", label: "참여조사" },
-    { href: "/meetings", label: "리더 모임" },
-    { href: familyReportHref, label: "가족 보고" },
-  ];
-  items.push(
     { href: "/announcements", label: "공지" },
-    { href: SORTING_HAT_USER_PATH, label: "배정 모자" },
-  );
+    { href: SORTING_HAT_USER_PATH, label: "배정모자" },
+  ];
   if (manages) {
     items.push(
       { href: "/groups", label: "가족" },

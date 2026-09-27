@@ -160,7 +160,7 @@ export function PushNotificationSettings({
   if (status === "unsupported") {
     return (
       <Card>
-        <CardHeader title="웹 푸시 알림" subtitle="가족 보고 등 중요 알림 (로그인 사용자)" />
+        <CardHeader title="웹 푸시 알림" subtitle="돌봄카드 등 중요 알림 (로그인 사용자)" />
         <p className="px-4 py-3 text-sm text-stone-500 sm:px-5">
           이 브라우저에서는 웹 푸시를 지원하지 않습니다. iPhone은 홈 화면에 추가한 PWA에서만 알림이
           동작합니다.
@@ -174,12 +174,12 @@ export function PushNotificationSettings({
     <Card>
       <CardHeader
         title="웹 푸시 알림"
-        subtitle="가족 보고 등 중요 알림 · 카카오톡과 별도로 동작합니다"
+        subtitle="돌봄카드 등 중요 알림 · 카카오톡과 별도로 동작합니다"
       />
       <div className="space-y-3 px-4 py-3 sm:px-5">
         <p className="text-sm text-stone-600">
           {status === "on" && "현재 이 기기에서 알림을 받도록 등록되어 있습니다."}
-          {status === "off" && "알림이 꺼져 있습니다. 켜면 가족 보고 등 푸시를 받을 수 있습니다."}
+          {status === "off" && "알림이 꺼져 있습니다. 켜면 돌봄카드 등 푸시를 받을 수 있습니다."}
           {status === "denied" &&
             "브라우저에서 알림이 차단되어 있습니다. 주소창 옆 사이트 설정에서 알림을 허용한 뒤 다시 시도해 주세요."}
         </p>

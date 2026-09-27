@@ -60,7 +60,7 @@ export default async function DashboardPage() {
       <div>
         <h2 className="text-xl font-semibold text-stone-900">안녕하세요, {user.name}님</h2>
         <p className="mt-1 text-sm text-stone-600">
-          역할: {roleLabel(user.role)} · 가족 보고 방 {reportCount}건
+          역할: {roleLabel(user.role)} · 돌봄카드 {reportCount}건
           {latestSunday && manages && (
             <>
               {" · "}
@@ -87,7 +87,7 @@ export default async function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
         <Card>
-          <CardHeader title="최근 리더 모임" subtitle="기도회 · 교안 나눔 · 해설 · 광고" />
+          <CardHeader title="최근 리더모임" subtitle="기도회 · 교안 나눔 · 해설 · 광고" />
           <ul className="divide-y divide-stone-100">
             {meetings.map((m) => (
               <li key={m.id}>

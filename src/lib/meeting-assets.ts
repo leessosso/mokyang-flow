@@ -1,5 +1,8 @@
 import { canManageApp, type MeetingAsset, type User } from "@/lib/types";
 
+/** 교안·해설지·악보 한 파일 상한. 서버 액션 본문 제한(25MB)보다 작게 둔다. */
+export const MAX_MEETING_ASSET_BYTES = 20 * 1024 * 1024;
+
 export function isCommentaryAssetPublished(asset: MeetingAsset): boolean {
   if (asset.kind !== "LESSON_COMMENTARY") return true;
   return asset.published === true;

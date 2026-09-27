@@ -94,7 +94,7 @@ export async function notifyUsersOfAnnouncement(options: {
   });
 }
 
-/** 가족 보고(가장 작성) 시 목사·관리자 구독자에게 알림. */
+/** 돌봄카드(가장 작성) 시 목사·관리자 구독자에게 알림. */
 export async function notifyPastorsAndAdminsOfFamilyReport(options: {
   groupId: string;
   groupName: string;
@@ -114,7 +114,7 @@ export async function notifyPastorsAndAdminsOfFamilyReport(options: {
     options.preview.length > 80 ? `${options.preview.slice(0, 80)}…` : options.preview;
 
   await sendWebPushToTokens(tokens, {
-    title: `가족 보고 · ${options.groupName}`,
+    title: `돌봄카드 · ${options.groupName}`,
     body: `${options.leaderName}: ${body}`,
     url,
     tag: `report-${options.groupId}`,

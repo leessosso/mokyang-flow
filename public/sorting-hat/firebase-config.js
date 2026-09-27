@@ -1,5 +1,5 @@
 // Firebase 웹 클라이언트 설정 (공개 키 — 브라우저에 노출되는 값)
-// 배정 모자(sorting-hat) Realtime Database 연결용
+// 배정모자(sorting-hat) Realtime Database 연결용
 
 const firebaseConfig = {
     apiKey: "AIzaSyBEh5AU90VBb_7aoexmvcumLWFDvzkC38Y",

@@ -15,7 +15,7 @@ export async function uploadMeetingFile(params: {
   const storageKey = `meetings/${params.meetingId}/${params.kind.toLowerCase()}/${Date.now()}-${safeName}`;
   const file = getBucket().file(storageKey);
   await file.save(params.buffer, {
-    contentType: params.contentType ?? "application/octet-stream",
+    contentType: params.contentType || "application/octet-stream",
     resumable: false,
   });
   return storageKey;

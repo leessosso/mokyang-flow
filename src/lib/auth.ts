@@ -24,7 +24,7 @@ export async function currentUserCanManageApp() {
   return user ? canManageApp(user) : false;
 }
 
-/** 그 가족원이 속한 가족의 현재 가장인지 확인 (가족 보고 방 권한에도 그대로 쓰인다) */
+/** 그 가족원이 속한 가족의 현재 가장인지 확인 (돌봄카드 권한에도 그대로 쓰인다) */
 export async function leaderCanAccessMember(userId: string, memberId: string) {
   const member = await getMemberById(memberId);
   if (!member) return false;

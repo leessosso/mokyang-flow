@@ -1,7 +1,7 @@
 import { pastoralMessagesCol, pastoralThreadsCol, withId } from "@/lib/store/collections";
 import type { PastoralMessage, PastoralThread } from "@/lib/types";
 
-/** 가족(groupId)당 보고 방은 하나. 없으면 만들지 않고 null을 돌려준다 (읽기 전용 목록용). */
+/** 가족(groupId)당 돌봄카드는 하나. 없으면 만들지 않고 null을 돌려준다 (읽기 전용 목록용). */
 export async function getThreadByGroup(groupId: string): Promise<PastoralThread | null> {
   const snap = await pastoralThreadsCol.where("groupId", "==", groupId).limit(1).get();
   if (snap.empty) return null;

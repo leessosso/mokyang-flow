@@ -145,7 +145,7 @@ async function main() {
 
   const meetingRef = getDb().collection("leaderMeetings").doc();
   await meetingRef.set({
-    title: "3월 1주 리더 모임",
+    title: "3월 1주 리더모임",
     date: "2026-03-05T19:30:00.000Z",
     notes: "교안 나눔 및 이번 달 가족 사역 나눔",
     prayerLeaderId: householdHeadIds[0].userId,

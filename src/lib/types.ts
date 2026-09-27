@@ -27,7 +27,7 @@ export type OfficerAppointment = {
   endedAt: string | null;
 };
 
-/** 리더 모임에서 그 주 담당을 정하는 섬김 항목. 배정하면 해당 사용자에게 푸시가 간다. */
+/** 리더모임에서 그 주 담당을 정하는 섬김 항목. 배정하면 해당 사용자에게 푸시가 간다. */
 export const SERVING_DUTIES = [
   { key: "prayer_meeting_lead", label: "기도회 인도" },
 ] as const;
@@ -82,7 +82,7 @@ export type GroupLeaderTerm = {
 
 export type MeetingAssetKind = "LESSON" | "LESSON_COMMENTARY" | "SCORE";
 
-/** 리더 모임 자료 (교안/해설지/악보) */
+/** 리더모임 자료 (교안/해설지/악보) */
 export type MeetingAsset = {
   id: string;
   meetingId: string;
@@ -97,7 +97,7 @@ export type MeetingAsset = {
   publishedById?: string | null;
 };
 
-/** 리더 모임 (구 LeaderMeeting) */
+/** 리더모임 (구 LeaderMeeting) */
 export type LeaderMeeting = {
   id: string;
   title: string;
@@ -141,7 +141,7 @@ export type SeatingAssignment = {
   groupId: string;
 };
 
-/** 가족 보고 방 (가족당 1개, 구 PastoralThread) */
+/** 돌봄카드 방 (가족당 1개, 구 PastoralThread) */
 export type PastoralThread = {
   id: string;
   groupId: string;
@@ -149,7 +149,7 @@ export type PastoralThread = {
   updatedAt: string;
 };
 
-/** 가족 보고 메시지. aboutMemberId가 있으면 특정 가족원 관련 글. */
+/** 돌봄카드 메시지. aboutMemberId가 있으면 특정 가족원 관련 글. */
 export type PastoralMessage = {
   id: string;
   threadId: string;
@@ -193,7 +193,7 @@ export type Announcement = {
   pushFailureCount?: number;
 };
 
-/** 출석 상태. 참석과 방송은 배타적(하나만 켠다), 결석은 둘 다 꺼진 상태. */
+/** 출석 상태. 출석(present)과 온라인(broadcast)은 하나만 켠다. 둘 다 꺼지면 결석(none). */
 export type AttendanceStatus = "present" | "broadcast" | "none";
 
 export type AttendanceServiceMark = {

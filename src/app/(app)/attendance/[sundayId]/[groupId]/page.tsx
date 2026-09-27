@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { saveAttendanceMarks } from "@/app/actions";
+import { AttendanceChoice } from "@/components/attendance-choice";
 import { Button, Card, CardHeader } from "@/components/ui";
 import { currentUserCanManageApp, leaderCanAccessGroup } from "@/lib/auth";
 import { formatDateKo } from "@/lib/format";
@@ -18,13 +19,7 @@ import {
   summarizeMarks,
 } from "@/lib/store/attendance";
 import { getGroupById, listMembersByGroup } from "@/lib/store/groups";
-import { isSpecialAttendance, type AttendanceStatus } from "@/lib/types";
-
-const STATUS_OPTIONS: { value: AttendanceStatus; label: string }[] = [
-  { value: "present", label: "참석" },
-  { value: "broadcast", label: "방송" },
-  { value: "none", label: "결석" },
-];
+import { isSpecialAttendance } from "@/lib/types";
 
 export default async function AttendanceGroupPage({
   params,
@@ -72,7 +67,9 @@ export default async function AttendanceGroupPage({
         <p className="mt-1 text-sm text-stone-500">
           {special
             ? `참석 ${totals.s13.present}`
-            : `4부 참석 ${totals.s4.present} · 방송 ${totals.s4.broadcast} · QR ${totals.s4.qr} · 1-3부 참석 ${totals.s13.present} · 방송 ${totals.s13.broadcast} · QR ${totals.s13.qr} · 가족모임 ${totals.familyMeeting}`}
+            : canEditQr
+              ? `4부 출석 ${totals.s4.present} · 온라인 ${totals.s4.broadcast} · QR ${totals.s4.qr} · 1-3부 출석 ${totals.s13.present} · 온라인 ${totals.s13.broadcast} · QR ${totals.s13.qr} · 가족모임 ${totals.familyMeeting}`
+              : `4부 출석 ${totals.s4.present} · 온라인 ${totals.s4.broadcast} · 1-3부 출석 ${totals.s13.present} · 온라인 ${totals.s13.broadcast} · 가족모임 ${totals.familyMeeting}`}
         </p>
       </div>
 
@@ -84,9 +81,7 @@ export default async function AttendanceGroupPage({
               ? "지난 주일 출석은 수정할 수 없습니다"
               : special
                 ? undefined
-                : canEditQr
-                  ? `${closeLabel}까지 입력할 수 있습니다`
-                  : `QR은 교회 명단 업로드로만 켜집니다 · ${closeLabel}까지`
+                : `${closeLabel}까지 입력할 수 있습니다`
           }
         />
         <form
@@ -97,7 +92,7 @@ export default async function AttendanceGroupPage({
         >
           <fieldset disabled={!editable} className="min-w-0 border-0 p-0">
           <div className="overflow-x-auto">
-            <table className={`w-full text-sm ${special ? "" : "min-w-[560px]"}`}>
+            <table className={`w-full text-sm ${special ? "" : canEditQr ? "min-w-[640px]" : "min-w-[480px]"}`}>
               <thead>
                 <tr className="border-b border-stone-100 text-left text-stone-500">
                   <th className="px-4 py-2 sm:px-5">이름</th>
@@ -106,9 +101,9 @@ export default async function AttendanceGroupPage({
                   ) : (
                     <>
                       <th className="px-2 py-2">4부</th>
-                      <th className="px-2 py-2">4부 QR</th>
+                      {canEditQr && <th className="px-2 py-2">4부 QR</th>}
                       <th className="px-2 py-2">1-3부</th>
-                      <th className="px-2 py-2">1-3부 QR</th>
+                      {canEditQr && <th className="px-2 py-2">1-3부 QR</th>}
                       <th className="px-2 py-2">가족모임</th>
                     </>
                   )}
@@ -142,51 +137,29 @@ export default async function AttendanceGroupPage({
                       ) : (
                         <>
                           <td className="px-2 py-2">
-                            <div className="flex gap-3">
-                              {STATUS_OPTIONS.map((opt) => (
-                                <label key={opt.value} className="flex items-center gap-1 text-xs">
-                                  <input
-                                    type="radio"
-                                    name={`s4_${m.id}`}
-                                    value={opt.value}
-                                    defaultChecked={s4Status === opt.value}
-                                  />
-                                  {opt.label}
-                                </label>
-                              ))}
-                            </div>
+                            <AttendanceChoice name={`s4_${m.id}`} defaultStatus={s4Status} />
                           </td>
+                          {canEditQr && (
+                            <td className="px-2 py-2">
+                              <input
+                                type="checkbox"
+                                name={`qr4_${m.id}`}
+                                defaultChecked={mark?.s4.qr ?? false}
+                              />
+                            </td>
+                          )}
                           <td className="px-2 py-2">
-                            <input
-                              type="checkbox"
-                              name={`qr4_${m.id}`}
-                              defaultChecked={mark?.s4.qr ?? false}
-                              disabled={!canEditQr}
-                            />
+                            <AttendanceChoice name={`s13_${m.id}`} defaultStatus={s13Status} />
                           </td>
-                          <td className="px-2 py-2">
-                            <div className="flex gap-3">
-                              {STATUS_OPTIONS.map((opt) => (
-                                <label key={opt.value} className="flex items-center gap-1 text-xs">
-                                  <input
-                                    type="radio"
-                                    name={`s13_${m.id}`}
-                                    value={opt.value}
-                                    defaultChecked={s13Status === opt.value}
-                                  />
-                                  {opt.label}
-                                </label>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="px-2 py-2">
-                            <input
-                              type="checkbox"
-                              name={`qr13_${m.id}`}
-                              defaultChecked={mark?.s13.qr ?? false}
-                              disabled={!canEditQr}
-                            />
-                          </td>
+                          {canEditQr && (
+                            <td className="px-2 py-2">
+                              <input
+                                type="checkbox"
+                                name={`qr13_${m.id}`}
+                                defaultChecked={mark?.s13.qr ?? false}
+                              />
+                            </td>
+                          )}
                           <td className="px-2 py-2">
                             <input
                               type="checkbox"
@@ -201,7 +174,7 @@ export default async function AttendanceGroupPage({
                 })}
                 {members.length === 0 && (
                   <tr>
-                    <td colSpan={special ? 2 : 6} className="px-4 py-6 text-center text-stone-500">
+                    <td colSpan={special ? 2 : canEditQr ? 6 : 4} className="px-4 py-6 text-center text-stone-500">
                       가족원이 없습니다.
                     </td>
                   </tr>

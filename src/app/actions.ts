@@ -7,7 +7,7 @@ import {
   isPastorOrAdmin,
   leaderCanAccessGroup,
 } from "@/lib/auth";
-import { canManageAnnouncements, canManageApp, isSpecialAttendance, SERVING_DUTY_BY_KEY } from "@/lib/types";
+import { canManageAnnouncements, canManageApp, isSpecialAttendance, meetingDutyUserId, SERVING_DUTY_BY_KEY } from "@/lib/types";
 import {
   assignMemberToGroup as assignMemberToGroupStore,
   createGroup as createGroupStore,
@@ -62,6 +62,7 @@ import {
 } from "@/lib/store/surveys";
 import { parseNamesFromFile } from "@/lib/qr-import";
 import { parseMemberRowsFromFile, parseMemberRowsFromText } from "@/lib/member-import";
+import { MAX_MEETING_ASSET_BYTES } from "@/lib/meeting-assets";
 import { uploadMeetingFile } from "@/lib/storage";
 import { getCurrentTerm, setCurrentTerm } from "@/lib/store/settings";
 import { nextTerm } from "@/lib/term";
@@ -158,7 +159,7 @@ async function sendAnnouncementPush(announcementId: string, sentById: string) {
   return { ok: true as const, pushSuccessCount, pushFailureCount, recipientCount: recipientIds.length };
 }
 
-/** 가족 보고: 가장 ↔ 목사가 나누는 한 방. aboutMemberId를 태그하면 어떤 가족원 이야기인지 남는다. */
+/** 돌봄카드: 가장 ↔ 목사가 나누는 한 방. aboutMemberId를 태그하면 어떤 가족원 이야기인지 남는다. */
 export async function sendFamilyReportMessage(
   groupId: string,
   body: string,
@@ -425,32 +426,41 @@ export async function uploadMeetingAsset(
   const manages = !!actor && canManageApp(actor);
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { error: "파일을 선택해 주세요." };
+  if (file.size > MAX_MEETING_ASSET_BYTES) {
+    return { error: "파일은 20MB 이하만 올릴 수 있습니다." };
+  }
 
   if (kind === "SCORE") {
     const meeting = await getMeetingById(meetingId);
     if (!meeting) return { error: "모임을 찾을 수 없습니다." };
-    if (meeting.prayerLeaderId !== user.id && !manages) {
+    const prayerLeaderId = meetingDutyUserId(meeting, "prayer_meeting_lead");
+    if (prayerLeaderId !== user.id && !manages) {
       return { error: "기도회 인도자만 악보를 올릴 수 있습니다." };
     }
   } else if (!manages) {
     return { error: "권한이 없습니다." };
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const storageKey = await uploadMeetingFile({
-    meetingId,
-    kind,
-    fileName: file.name,
-    buffer,
-    contentType: file.type,
-  });
-  await addMeetingAsset({
-    meetingId,
-    kind,
-    fileName: file.name,
-    storageKey,
-    uploadedById: user.id,
-  });
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const storageKey = await uploadMeetingFile({
+      meetingId,
+      kind,
+      fileName: file.name,
+      buffer,
+      contentType: file.type,
+    });
+    await addMeetingAsset({
+      meetingId,
+      kind,
+      fileName: file.name,
+      storageKey,
+      uploadedById: user.id,
+    });
+  } catch (error) {
+    console.error("uploadMeetingAsset failed", error);
+    return { error: "파일을 올리지 못했습니다. 잠시 후 다시 시도해 주세요." };
+  }
 
   revalidatePath(`/meetings/${meetingId}`);
   return { ok: true };
@@ -609,8 +619,13 @@ async function openAttendanceSundayId(sundayId: string): Promise<{ error: string
   return { id: sunday.id };
 }
 
+function attendanceStatusFromForm(value: FormDataEntryValue | null): AttendanceStatus {
+  if (value === "present" || value === "broadcast" || value === "none") return value;
+  return "none";
+}
+
 /**
- * 가족원별 1-3부/4부 참석·방송을 저장한다. 가장은 자기 가족만, 임원·목사는 어느 가족이든 저장할 수 있고
+ * 가족원별 1-3부/4부 출석·온라인을 저장한다. 가장은 자기 가족만, 임원·목사는 어느 가족이든 저장할 수 있고
  * QR도 수동으로 고칠 수 있다(`qr13_{memberId}` / `qr4_{memberId}` 체크박스가 폼에 있을 때만).
  */
 export async function saveAttendanceMarks(sundayId: string, groupId: string, formData: FormData) {
@@ -628,8 +643,8 @@ export async function saveAttendanceMarks(sundayId: string, groupId: string, for
 
   const memberIds = formData.getAll("memberId").map(String);
   const entries: SaveMarkEntry[] = memberIds.map((memberId) => {
-    const s13Status = ((formData.get(`s13_${memberId}`) as string) || "none") as AttendanceStatus;
-    const s4Status = ((formData.get(`s4_${memberId}`) as string) || "none") as AttendanceStatus;
+    const s13Status = attendanceStatusFromForm(formData.get(`s13_${memberId}`));
+    const s4Status = attendanceStatusFromForm(formData.get(`s4_${memberId}`));
     const familyMeeting = formData.get(`family_${memberId}`) === "on";
     const entry: SaveMarkEntry = { memberId, groupId, s13Status, s4Status, familyMeeting };
     if (canEditQr) {

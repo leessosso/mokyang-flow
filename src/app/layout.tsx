@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "2청년회 운영",
-  description: "리더 모임·교안·기도회·배정 모자·가족 보고",
+  description: "리더모임·교안·기도회·배정모자·돌봄카드",
   applicationName: "2청년회 운영",
   manifest: "/manifest.webmanifest",
   appleWebApp: {

@@ -18,7 +18,7 @@ export default async function LoginPage({
       <div className="hidden h-screen w-[42%] max-w-xl flex-col justify-end bg-primary px-12 py-16 text-white lg:flex">
         <h1 className="text-4xl font-semibold">2청년회 운영</h1>
         <p className="mt-4 max-w-sm text-sm leading-6 text-stone-300">
-          리더 모임 자료, 배정 모자, 가족 보고를 한곳에서 관리합니다.
+          리더모임 자료, 배정모자, 돌봄카드를 한곳에서 관리합니다.
         </p>
       </div>
       <Card className="w-full max-w-md p-6 sm:p-8 lg:ml-16 xl:ml-24">

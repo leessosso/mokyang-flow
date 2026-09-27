@@ -35,7 +35,7 @@ export default async function ReportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold">가족 보고</h2>
+        <h2 className="text-xl font-semibold">돌봄카드</h2>
         <p className="text-sm text-stone-600">
           이번 학기 가족 단위 비공개 방 — 해당 가장과 목사만 열람할 수 있습니다.
         </p>
@@ -61,7 +61,7 @@ export default async function ReportsPage() {
                     {latest ? (
                       <p className="mt-1 line-clamp-1 text-sm text-stone-500">최근 메시지 있음</p>
                     ) : (
-                      <p className="mt-1 text-sm text-stone-400">아직 보고 없음</p>
+                      <p className="mt-1 text-sm text-stone-400">아직 메시지 없음</p>
                     )}
                   </div>
                 </Card>
