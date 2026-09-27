@@ -93,7 +93,7 @@ export default async function GroupsPage() {
         <Card>
           <CardHeader
             title="이번 학기 미배정 가족원"
-            subtitle="이전 학기 가족에 남아 있습니다. 새 가족으로 옮겨 주세요."
+            subtitle="아직 이번 학기 가족에 없습니다. 가족 화면에서 옮겨 주세요."
           />
           <ul className="divide-y divide-stone-100 text-sm">
             {unassigned.map((m) => (
