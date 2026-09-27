@@ -90,6 +90,9 @@ export async function addMeetingAsset(data: {
   const asset: Omit<MeetingAsset, "id"> = {
     ...data,
     createdAt: new Date().toISOString(),
+    ...(data.kind === "LESSON_COMMENTARY"
+      ? { published: false, publishedAt: null, publishedById: null }
+      : {}),
   };
   await ref.set(asset);
   return { id: ref.id, ...asset };
@@ -99,4 +102,16 @@ export async function getMeetingAssetById(id: string): Promise<MeetingAsset | nu
   const doc = await meetingAssetsCol.doc(id).get();
   if (!doc.exists) return null;
   return { id: doc.id, ...doc.data()! };
+}
+
+export async function setMeetingAssetPublished(
+  assetId: string,
+  published: boolean,
+  publishedById: string | null,
+): Promise<void> {
+  await meetingAssetsCol.doc(assetId).update({
+    published,
+    publishedAt: published ? new Date().toISOString() : null,
+    publishedById: published ? publishedById : null,
+  });
 }

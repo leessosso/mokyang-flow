@@ -2,11 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import {
+  publishMeetingCommentary,
   setPrayerLeader,
+  unpublishMeetingCommentary,
   updateMeetingNotes,
   uploadMeetingAsset,
 } from "@/app/actions";
+import { MeetingAssetList } from "@/components/meeting-asset-list";
 import { Button, Card, CardHeader, Label, Textarea } from "@/components/ui";
+import { canViewMeetingAsset } from "@/lib/meeting-assets";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDateTimeKo } from "@/lib/format";
 import { listCurrentLeaderUserIds } from "@/lib/store/groups";
@@ -17,7 +21,7 @@ import {
   SORTING_HAT_USER_PATH,
   meetingReturnPath,
 } from "@/lib/sorting-hat";
-import { canManageApp, canManageAnnouncements, meetingDutyUserId, type MeetingAsset } from "@/lib/types";
+import { canManageApp, canManageAnnouncements, meetingDutyUserId } from "@/lib/types";
 
 export default async function MeetingDetailPage({
   params,
@@ -45,9 +49,12 @@ export default async function MeetingDetailPage({
     .filter((leader): leader is NonNullable<typeof leader> => !!leader)
     .sort((a, b) => a.name.localeCompare(b.name, "ko"));
 
-  const lessonAssets = assets.filter((a) => a.kind === "LESSON");
-  const commentaryAssets = assets.filter((a) => a.kind === "LESSON_COMMENTARY");
-  const scoreAssets = assets.filter((a) => a.kind === "SCORE");
+  const visible = (list: typeof assets) =>
+    currentUser ? list.filter((a) => canViewMeetingAsset(a, currentUser)) : [];
+
+  const lessonAssets = visible(assets.filter((a) => a.kind === "LESSON"));
+  const commentaryAssets = visible(assets.filter((a) => a.kind === "LESSON_COMMENTARY"));
+  const scoreAssets = visible(assets.filter((a) => a.kind === "SCORE"));
 
   const prayerLeaderId = meetingDutyUserId(meeting, "prayer_meeting_lead");
   const prayerLeaderName = prayerLeaderId
@@ -99,7 +106,12 @@ export default async function MeetingDetailPage({
               <Button type="submit" variant="secondary">저장</Button>
             </form>
           )}
-          <AssetList meetingId={id} assets={scoreAssets} emptyLabel="아직 악보 없음" />
+          <MeetingAssetList
+            meetingId={id}
+            assets={scoreAssets}
+            emptyLabel="아직 악보 없음"
+            canPublishCommentary={false}
+          />
           {(isPrayerLeader || canAdmin) && prayerLeaderId && (
             <form
               action={async (fd) => {
@@ -122,7 +134,12 @@ export default async function MeetingDetailPage({
           subtitle="배정 모자로 가장·임원·게스트(부가장·사역팀장) 조를 짠 뒤, 이번 주 교안으로 나눕니다."
         />
         <div className="space-y-4 p-4 sm:p-5">
-          <AssetList meetingId={id} assets={lessonAssets} emptyLabel="아직 교안 없음" />
+          <MeetingAssetList
+            meetingId={id}
+            assets={lessonAssets}
+            emptyLabel="아직 교안 없음"
+            canPublishCommentary={false}
+          />
           {canAdmin && (
             <form
               action={async (fd) => {
@@ -159,7 +176,14 @@ export default async function MeetingDetailPage({
       <Card>
         <CardHeader title="3. 교안 해설" subtitle="목사님이 나눔 뒤에 교안을 해설합니다." />
         <div className="space-y-3 p-4 sm:p-5">
-          <AssetList meetingId={id} assets={commentaryAssets} emptyLabel="아직 해설지 없음" />
+          <MeetingAssetList
+            meetingId={id}
+            assets={commentaryAssets}
+            emptyLabel="아직 해설지 없음"
+            canPublishCommentary={canAdmin}
+            publishAction={(assetId) => publishMeetingCommentary(id, assetId)}
+            unpublishAction={(assetId) => unpublishMeetingCommentary(id, assetId)}
+          />
           {canAdmin && (
             <form
               action={async (fd) => {
@@ -169,6 +193,9 @@ export default async function MeetingDetailPage({
               className="space-y-2 border-t border-stone-100 pt-3"
             >
               <Label>교안 해설지 업로드</Label>
+              <p className="text-xs text-stone-500">
+                업로드 직후 비공개입니다. 가장에게 보이려면 「공개」를 눌러 주세요.
+              </p>
               <input type="file" name="file" required className="text-sm" />
               <Button type="submit" variant="secondary">올리기</Button>
             </form>
@@ -196,33 +223,5 @@ export default async function MeetingDetailPage({
         )}
       </Card>
     </div>
-  );
-}
-
-function AssetList({
-  meetingId,
-  assets,
-  emptyLabel,
-}: {
-  meetingId: string;
-  assets: MeetingAsset[];
-  emptyLabel: string;
-}) {
-  if (assets.length === 0) {
-    return <p className="text-sm text-stone-500">{emptyLabel}</p>;
-  }
-  return (
-    <ul className="space-y-2">
-      {assets.map((asset) => (
-        <li key={asset.id}>
-          <a
-            href={`/api/meetings/${meetingId}/assets/${asset.id}`}
-            className="block rounded-lg border border-stone-200 px-3 py-2 text-sm transition hover:bg-stone-50"
-          >
-            {asset.fileName}
-          </a>
-        </li>
-      ))}
-    </ul>
   );
 }

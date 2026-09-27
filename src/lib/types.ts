@@ -91,6 +91,10 @@ export type MeetingAsset = {
   storageKey: string;
   uploadedById: string;
   createdAt: string;
+  /** 교안 해설지만 사용. 공개 전에는 가장 등 일반 리더에게 노출하지 않는다. */
+  published?: boolean;
+  publishedAt?: string | null;
+  publishedById?: string | null;
 };
 
 /** 리더 모임 (구 LeaderMeeting) */

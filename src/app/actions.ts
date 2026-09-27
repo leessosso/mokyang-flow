@@ -36,7 +36,9 @@ import {
 import {
   addMeetingAsset,
   createMeeting,
+  getMeetingAssetById,
   getMeetingById,
+  setMeetingAssetPublished,
   setMeetingDutyUser,
   setMeetingPrayerLeader,
   updateMeetingNotes as updateMeetingNotesStore,
@@ -450,6 +452,36 @@ export async function uploadMeetingAsset(
     uploadedById: user.id,
   });
 
+  revalidatePath(`/meetings/${meetingId}`);
+  return { ok: true };
+}
+
+export async function publishMeetingCommentary(meetingId: string, assetId: string) {
+  const user = await sessionUser();
+  const actor = await getUserById(user.id);
+  if (!actor || !canManageApp(actor)) return { error: "권한이 없습니다." };
+
+  const asset = await getMeetingAssetById(assetId);
+  if (!asset || asset.meetingId !== meetingId || asset.kind !== "LESSON_COMMENTARY") {
+    return { error: "자료를 찾을 수 없습니다." };
+  }
+
+  await setMeetingAssetPublished(assetId, true, user.id);
+  revalidatePath(`/meetings/${meetingId}`);
+  return { ok: true };
+}
+
+export async function unpublishMeetingCommentary(meetingId: string, assetId: string) {
+  const user = await sessionUser();
+  const actor = await getUserById(user.id);
+  if (!actor || !canManageApp(actor)) return { error: "권한이 없습니다." };
+
+  const asset = await getMeetingAssetById(assetId);
+  if (!asset || asset.meetingId !== meetingId || asset.kind !== "LESSON_COMMENTARY") {
+    return { error: "자료를 찾을 수 없습니다." };
+  }
+
+  await setMeetingAssetPublished(assetId, false, null);
   revalidatePath(`/meetings/${meetingId}`);
   return { ok: true };
 }
