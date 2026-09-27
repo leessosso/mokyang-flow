@@ -7,6 +7,12 @@ export async function getUserByEmail(email: string): Promise<User | null> {
   return withId(snap.docs[0]);
 }
 
+/** `name` 완전 일치. 동명이인이면 여러 건이 반환될 수 있다. */
+export async function getUserByName(name: string): Promise<User[]> {
+  const snap = await usersCol.where("name", "==", name).get();
+  return snap.docs.map(withId);
+}
+
 export async function getUserById(id: string): Promise<User | null> {
   const doc = await usersCol.doc(id).get();
   if (!doc.exists) return null;
