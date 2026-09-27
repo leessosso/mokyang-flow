@@ -459,6 +459,9 @@ export async function uploadMeetingAsset(
     });
   } catch (error) {
     console.error("uploadMeetingAsset failed", error);
+    if (error instanceof Error && error.message.includes("BLOB_READ_WRITE_TOKEN")) {
+      return { error: error.message };
+    }
     return { error: "파일을 올리지 못했습니다. 잠시 후 다시 시도해 주세요." };
   }
 

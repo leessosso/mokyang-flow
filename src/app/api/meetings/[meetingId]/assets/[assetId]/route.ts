@@ -3,7 +3,10 @@ import { auth } from "@/auth";
 import { canViewMeetingAsset, getAssetPreviewKind } from "@/lib/meeting-assets";
 import { getMeetingAssetById } from "@/lib/store/meetings";
 import { getUserById } from "@/lib/store/users";
-import { getSignedDownloadUrl } from "@/lib/storage";
+import {
+  getAuthenticatedAssetPath,
+  getMeetingFileBlob,
+} from "@/lib/storage";
 
 export async function GET(
   req: Request,
@@ -29,15 +32,35 @@ export async function GET(
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
 
-  const url = await getSignedDownloadUrl(asset.storageKey);
   const { searchParams } = new URL(req.url);
   if (searchParams.get("intent") === "preview") {
     return NextResponse.json({
-      url,
+      url: getAuthenticatedAssetPath(meetingId, assetId),
       previewKind: getAssetPreviewKind(asset.fileName),
       fileName: asset.fileName,
     });
   }
 
-  return NextResponse.redirect(url);
+  const blobResult = await getMeetingFileBlob(asset.storageKey);
+  if (!blobResult) {
+    return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  }
+
+  const contentType =
+    blobResult.blob.contentType ??
+    blobResult.headers.get("content-type") ??
+    "application/octet-stream";
+
+  const headers: Record<string, string> = {
+    "Content-Type": contentType,
+    "X-Content-Type-Options": "nosniff",
+    "Cache-Control": "private, no-store",
+  };
+
+  if (searchParams.get("download") === "1") {
+    const encoded = encodeURIComponent(asset.fileName);
+    headers["Content-Disposition"] = `attachment; filename*=UTF-8''${encoded}`;
+  }
+
+  return new NextResponse(blobResult.stream, { headers });
 }

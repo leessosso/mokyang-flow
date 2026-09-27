@@ -45,11 +45,11 @@ PWA 홈 화면에 표시되는 이름은 **「2청년회 운영」** 입니다 (
 | 무엇 | 어디에 |
 |------|--------|
 | 계정, 가족, 가족원, 가장 임기, 학기, 리더모임, 돌봄카드, 출석, 참여조사, 공지, 예배 좌석 | **Firestore** (`src/lib/firebase-admin.ts`, `src/lib/store/*`) |
-| 교안, 교안 해설지, 악보 | **Firebase Storage** (`src/lib/storage.ts`) |
+| 교안, 교안 해설지, 악보 | **Vercel Blob** (비공개, `src/lib/storage.ts`) |
 | 푸시 구독 | Firestore `pushSubscriptions` |
 | 배정모자 실시간 상태 | **Realtime Database** (`public/sorting-hat/`). Firestore와 별개 |
 
-클라이언트는 Firestore/Storage를 직접 읽지 않습니다. 서버 액션(`src/app/actions.ts`)과 서버 컴포넌트만 `firebase-admin`으로 접근하고, 권한은 NextAuth 세션으로 검사합니다. **웹 푸시(FCM)만** 브라우저의 Firebase Messaging SDK와 서비스 워커를 쓰고, 토큰은 서버가 저장합니다.
+클라이언트는 Firestore·Blob을 직접 읽지 않습니다. 서버 액션(`src/app/actions.ts`)과 서버 컴포넌트만 `firebase-admin`으로 접근하고, 권한은 NextAuth 세션으로 검사합니다. **웹 푸시(FCM)만** 브라우저의 Firebase Messaging SDK와 서비스 워커를 쓰고, 토큰은 서버가 저장합니다.
 
 ## 웹 푸시
 
@@ -106,7 +106,8 @@ curl -sS -H "Authorization: Bearer $CRON_SECRET" \
 
 - Node.js 20+
 - npm
-- Firebase 프로젝트 (Firestore + Storage) 또는 로컬 Firebase Emulator Suite
+- Firebase 프로젝트 (Firestore) 또는 로컬 Firestore 에뮬레이터
+- 리더 모임 파일 업로드: Vercel Blob (`BLOB_READ_WRITE_TOKEN`, Vercel에서 스토어 연결 시 주입)
 
 ## 설치 및 실행
 
@@ -114,7 +115,7 @@ curl -sS -H "Authorization: Bearer $CRON_SECRET" \
 
 **로컬 (에뮬레이터)**
 
-Firestore와 Storage만 로컬에서 돌립니다. 프로젝트 ID는 `demo-`로 시작해야 실제 Firebase에 붙지 않습니다.
+Firestore만 로컬에서 돌려도 됩니다(Storage 에뮬레이터는 이 앱의 교안·악보에 쓰이지 않습니다). 프로젝트 ID는 `demo-`로 시작해야 실제 Firebase에 붙지 않습니다.
 
 ```bash
 npm install -g firebase-tools
@@ -131,23 +132,22 @@ export JAVA_HOME="/opt/homebrew/opt/openjdk"
 이 터미널은 켜 둡니다.
 
 ```bash
-firebase emulators:start --only firestore,storage --project demo-mokyang-flow
+firebase emulators:start --only firestore --project demo-mokyang-flow
 ```
 
 | 서비스 | 주소 |
 |--------|------|
 | 에뮬레이터 UI | [http://127.0.0.1:4000](http://127.0.0.1:4000) |
 | Firestore | `127.0.0.1:8080` |
-| Storage | `127.0.0.1:9199` |
-
 에뮬레이터를 끄면 데이터가 사라집니다. 다시 켠 뒤 `npm run db:seed`로 데모 데이터를 넣습니다.
 
 ```
 AUTH_SECRET="로컬 개발용 시크릿"
 FIREBASE_PROJECT_ID="demo-mokyang-flow"
 FIRESTORE_EMULATOR_HOST="127.0.0.1:8080"
-FIREBASE_STORAGE_EMULATOR_HOST="127.0.0.1:9199"
 FIREBASE_STORAGE_BUCKET="demo-mokyang-flow.appspot.com"
+# 교안·악보 업로드 (Vercel Blob 대시보드에서 발급하거나, 연결된 Vercel 프로젝트에서 vercel env pull)
+BLOB_READ_WRITE_TOKEN="..."
 ```
 
 **실제 Firebase**
@@ -160,9 +160,10 @@ FIREBASE_PROJECT_ID="..."
 FIREBASE_CLIENT_EMAIL="firebase-adminsdk-...@....iam.gserviceaccount.com"
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 FIREBASE_STORAGE_BUCKET="....appspot.com"
+BLOB_READ_WRITE_TOKEN="..."  # Vercel Blob 스토어 연결 시 프로젝트 env에 자동 등록
 ```
 
-에뮬레이터가 켜진 뒤 다른 터미널에서:
+에뮬레이터가 켜진 뒤(또는 실제 Firebase만 쓸 때) 다른 터미널에서:
 
 ```bash
 npm install
@@ -207,7 +208,7 @@ Realtime Database를 그대로 씁니다. `public/sorting-hat/firebase-config.js
 
 디스크에 남기는 데이터는 없습니다. Firebase 환경 변수만 있으면 배포할 수 있습니다.
 
-1. `.env.example`의 Firebase 서비스 계정·웹 푸시 변수를 등록합니다. 에뮬레이터 변수는 넣지 않습니다.
+1. `.env.example`의 Firebase 서비스 계정·웹 푸시 변수를 등록합니다. 에뮬레이터 변수는 넣지 않습니다. Vercel Blob 스토어를 프로젝트에 연결하면 `BLOB_READ_WRITE_TOKEN`이 주입됩니다.
 2. `AUTH_SECRET`을 새 값으로 바꿉니다.
 3. 출석 리마인더용 `CRON_SECRET`을 등록합니다. Vercel Cron이 `Authorization: Bearer`로 넘깁니다.
 4. Firestore 규칙은 클라이언트 접근 거부로 둡니다. 이 앱은 서버에서만 접근합니다.
@@ -216,5 +217,6 @@ Realtime Database를 그대로 씁니다. `public/sorting-hat/firebase-config.js
 
 - Next.js (App Router), TypeScript, Tailwind CSS
 - NextAuth (이메일·비밀번호, Firestore 사용자)
-- Firebase Admin (Firestore, Storage, Cloud Messaging)
+- Firebase Admin (Firestore, Cloud Messaging)
+- Vercel Blob (`@vercel/blob`, 리더 모임 자료)
 - PWA (`public/manifest.webmanifest`, `public/icons/*`, `/firebase-messaging-sw.js`)
