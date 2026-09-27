@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getToken, deleteToken, getMessaging, isSupported } from "firebase/messaging";
 import { Button, Card, CardHeader } from "@/components/ui";
 import { getClientFirebaseApp, getWebPushVapidKey } from "@/lib/firebase-client";
@@ -11,9 +11,18 @@ import {
 
 type Status = "unsupported" | "unconfigured" | "denied" | "off" | "on";
 
+function hasNotificationApi(): boolean {
+  return typeof window !== "undefined" && "Notification" in window;
+}
+
+function hasServiceWorkerApi(): boolean {
+  return typeof navigator !== "undefined" && "serviceWorker" in navigator;
+}
+
 function initialStatus(configured: boolean, initialSubscribed: boolean): Status {
   if (!configured) return "unconfigured";
   if (typeof window === "undefined") return initialSubscribed ? "on" : "off";
+  if (!hasNotificationApi() || !hasServiceWorkerApi()) return "unsupported";
   if (Notification.permission === "denied") return "denied";
   if (initialSubscribed && Notification.permission === "granted") return "on";
   return "off";
@@ -30,6 +39,29 @@ export function PushNotificationSettings({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!configured) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const supported = await isSupported();
+        if (cancelled) return;
+        if (!supported) {
+          setStatus("unsupported");
+          return;
+        }
+        if (!hasNotificationApi() || !hasServiceWorkerApi()) {
+          setStatus("unsupported");
+        }
+      } catch {
+        if (!cancelled) setStatus("unsupported");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [configured]);
+
   async function enablePush() {
     setBusy(true);
     setMessage(null);
@@ -42,6 +74,16 @@ export function PushNotificationSettings({
       if (!supported) {
         setStatus("unsupported");
         setMessage("이 브라우저에서는 웹 푸시를 지원하지 않습니다.");
+        return;
+      }
+      if (!hasNotificationApi()) {
+        setStatus("unsupported");
+        setMessage("이 브라우저에서는 웹 푸시를 지원하지 않습니다.");
+        return;
+      }
+      if (!hasServiceWorkerApi()) {
+        setStatus("unsupported");
+        setMessage("이 브라우저에서는 서비스 워커를 사용할 수 없습니다.");
         return;
       }
       const permission = await Notification.requestPermission();
