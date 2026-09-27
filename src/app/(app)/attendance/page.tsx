@@ -163,8 +163,8 @@ function WeekTotals({
   }
   return (
     <p className="mt-1 text-xs text-stone-500">
-      1-3부 참석 {totals.s13.present} · 방송 {totals.s13.broadcast} · QR {totals.s13.qr}
-      {" · "}4부 참석 {totals.s4.present} · 방송 {totals.s4.broadcast} · QR {totals.s4.qr}
+      4부 참석 {totals.s4.present} · 방송 {totals.s4.broadcast} · QR {totals.s4.qr}
+      {" · "}1-3부 참석 {totals.s13.present} · 방송 {totals.s13.broadcast} · QR {totals.s13.qr}
       {" · "}가족모임 {totals.familyMeeting}
     </p>
   );
