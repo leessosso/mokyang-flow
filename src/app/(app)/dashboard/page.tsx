@@ -8,8 +8,10 @@ import { listMeetings } from "@/lib/store/meetings";
 import { countThreadsWithMessages } from "@/lib/store/reports";
 import { listMarksBySunday, listWeeklySundaySlots } from "@/lib/store/attendance";
 import { canManageApp } from "@/lib/types";
+import { PollDayBanner } from "@/components/poll-day-banner";
 import { PushNotificationSettings } from "@/components/push-notification-settings";
 import { isWebPushConfigured } from "@/lib/firebase-client";
+import { getPollDayBannerIfToday } from "@/lib/store/poll-day";
 import { listPushSubscriptionsForUser } from "@/lib/store/push-subscriptions";
 
 export default async function DashboardPage() {
@@ -55,8 +57,12 @@ export default async function DashboardPage() {
     ? (await listPushSubscriptionsForUser(user.id)).length > 0
     : false;
 
+  const pollBanner = await getPollDayBannerIfToday();
+
   return (
     <div className="space-y-6">
+      {pollBanner && <PollDayBanner href={pollBanner.href} />}
+
       <div>
         <h2 className="text-xl font-semibold text-stone-900">안녕하세요, {user.name}님</h2>
         <p className="mt-1 text-sm text-stone-600">

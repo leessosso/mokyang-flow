@@ -64,6 +64,8 @@ import { parseNamesFromFile } from "@/lib/qr-import";
 import { parseMemberRowsFromFile, parseMemberRowsFromText } from "@/lib/member-import";
 import { MAX_MEETING_ASSET_BYTES } from "@/lib/meeting-assets";
 import { uploadMeetingFile } from "@/lib/storage";
+import { isValidPollDateKey } from "@/lib/poll-day";
+import { clearPollDaySettings, setPollDaySettings } from "@/lib/store/poll-day";
 import { getCurrentTerm, setCurrentTerm } from "@/lib/store/settings";
 import { nextTerm } from "@/lib/term";
 import { OFFICER_TITLES, type OfficerTitle } from "@/lib/types";
@@ -216,6 +218,31 @@ export async function handoverLeader(groupId: string, newLeaderId: string) {
 
   revalidatePath("/admin/handover");
   revalidatePath("/groups");
+  return { ok: true };
+}
+
+export async function setPollDayAction(formData: FormData) {
+  const manager = await requireAppManager();
+  if (!manager) return { error: "권한이 없습니다." };
+
+  const dateKey = String(formData.get("dateKey") ?? "").trim();
+  if (!isValidPollDateKey(dateKey)) {
+    return { error: "올바른 날짜(YYYY-MM-DD)를 선택해 주세요." };
+  }
+
+  await setPollDaySettings(dateKey, manager.id);
+  revalidatePath("/admin/poll-day");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function clearPollDayAction() {
+  const manager = await requireAppManager();
+  if (!manager) return { error: "권한이 없습니다." };
+
+  await clearPollDaySettings();
+  revalidatePath("/admin/poll-day");
+  revalidatePath("/dashboard");
   return { ok: true };
 }
 
