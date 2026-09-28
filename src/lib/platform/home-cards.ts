@@ -1,4 +1,5 @@
 import type { PlatformPersona } from "@/lib/platform/roles";
+import { TRAINING_SSO_ENTRY_PATH } from "@/lib/platform/training-sso-constants";
 
 export type HomeCardId =
   | "weekly_attendance"
@@ -113,21 +114,21 @@ function cardDefinitions(ctx: HomeCardBuildContext): Record<HomeCardId, HomeCard
       id: "training_self_checkin",
       title: "오늘 · 이번 회차 출석",
       description: "훈련 프로그램에서 본인 출석을 체크합니다.",
-      href: "/training",
+      href: TRAINING_SSO_ENTRY_PATH,
       variant: "emphasis",
     },
     training_attendance_overview: {
       id: "training_attendance_overview",
       title: "내 프로그램 출석 현황",
       description: "담당 프로그램의 출석을 확인하고 대리 체크합니다.",
-      href: "/training",
+      href: TRAINING_SSO_ENTRY_PATH,
       variant: "default",
     },
     training_participants: {
       id: "training_participants",
       title: "참여자",
       description: "프로그램 참여자 명단과 출석을 관리합니다.",
-      href: "/training",
+      href: TRAINING_SSO_ENTRY_PATH,
       variant: "default",
     },
     upcoming_meeting: {
@@ -150,7 +151,7 @@ function cardDefinitions(ctx: HomeCardBuildContext): Record<HomeCardId, HomeCard
       id: "training_hub",
       title: "훈련 프로그램",
       description: "훈련 프로그램 운영·출석 메뉴로 이동합니다.",
-      href: "/training",
+      href: TRAINING_SSO_ENTRY_PATH,
       variant: "default",
     },
     members_officers: {
