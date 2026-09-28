@@ -4,6 +4,8 @@ import { canManageApp } from "@/lib/types";
 import { FitText } from "@/components/fit-text";
 import { AppMain } from "@/components/app-main";
 import { AppNav, type NavItem } from "@/components/app-nav";
+import { PlatformPrimaryNav } from "@/components/platform-primary-nav";
+import { LeaderAxisChrome } from "@/components/leader-axis-chrome";
 import { SORTING_HAT_ADMIN_PATH, SORTING_HAT_USER_PATH } from "@/lib/sorting-hat";
 
 function navFor(
@@ -12,7 +14,7 @@ function navFor(
 ): NavItem[] {
   const manages = canManageApp(user);
   const items: NavItem[] = [
-    { href: "/dashboard", label: "대시보드" },
+    { href: "/dashboard", label: "홈" },
     { href: "/attendance", label: "출석" },
     { href: "/meetings", label: "리더모임" },
     { href: familyReportHref, label: "돌봄카드" },
@@ -42,7 +44,7 @@ function LogoutButton({ className }: { className?: string }) {
     >
       <button
         type="submit"
-        className="w-full whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm text-stone-500 hover:bg-stone-100"
+        className="w-full whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm text-muted hover:bg-stone-100"
       >
         로그아웃
       </button>
@@ -62,23 +64,27 @@ export function AppShell({
   const nav = navFor(user, familyReportHref);
 
   return (
-    <div className="flex h-full min-h-screen flex-col bg-stone-50 text-stone-900 lg:flex-row">
-      <aside className="hidden lg:flex lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-stone-200 lg:bg-white">
-        <div className="border-b border-stone-100 px-5 py-5">
-          <h1 className="text-lg font-semibold text-stone-900">2청년회 운영</h1>
+    <div className="flex h-full min-h-screen flex-col bg-background text-foreground lg:flex-row">
+      <aside className="hidden lg:flex lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-border lg:bg-surface">
+        <div className="border-b border-border px-5 py-4">
+          <p className="text-lg font-semibold text-foreground">2청년회</p>
+          <p className="mt-0.5 text-xs text-muted">통합 플랫폼</p>
+          <div className="mt-3">
+            <PlatformPrimaryNav />
+          </div>
         </div>
-        <AppNav items={nav} variant="desktop" />
-        <div className="mt-auto border-t border-stone-100 px-3 py-4">
+        <LeaderAxisChrome leaderNav={<AppNav items={nav} variant="desktop" />} />
+        <div className="mt-auto border-t border-border px-3 py-4">
           <p className="truncate px-3 text-sm font-medium">{user.name}</p>
           <LogoutButton className="mt-2" />
         </div>
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="shrink-0 border-b border-stone-200 bg-white lg:hidden">
+        <header className="shrink-0 border-b border-border bg-surface lg:hidden">
           <div className="flex items-center justify-between gap-3 px-4 py-2">
             <div className="min-w-0 flex-1">
-              <FitText text="2청년회 운영" />
+              <FitText text="2청년회" />
             </div>
             <div className="flex min-w-0 max-w-[46%] items-center gap-2">
               <div className="min-w-0 text-right text-sm">
@@ -87,7 +93,10 @@ export function AppShell({
               <LogoutButton className="shrink-0" />
             </div>
           </div>
-          <AppNav items={nav} variant="mobile" />
+          <div className="border-t border-border px-4 py-2">
+            <PlatformPrimaryNav />
+          </div>
+          <LeaderAxisChrome leaderNav={<AppNav items={nav} variant="mobile" />} />
         </header>
         <AppMain>{children}</AppMain>
       </div>
