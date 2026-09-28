@@ -45,6 +45,10 @@ export type User = {
   email: string;
   passwordHash: string;
   name: string;
+  /** 로그인 식별자(동명이인 구분). 정규화된 숫자 문자열. */
+  phone: string | null;
+  /** 운영자가 설정한 초기 비밀번호로 첫 로그인 시 true. 변경 후 false. */
+  mustChangePassword?: boolean;
   role: Role;
   officerTitle: OfficerTitle | null;
   createdAt: string;

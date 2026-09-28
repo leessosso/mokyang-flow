@@ -1,13 +1,13 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { authConfig } from "@/auth.config";
-import { getUserByEmail, getUserByName } from "@/lib/store/users";
-import { verifyPassword } from "@/lib/password";
+import { resolveLoginUser, userMustChangePassword } from "@/lib/login";
 import type { Role } from "@/lib/types";
 
 declare module "next-auth" {
   interface User {
     role: Role;
+    mustChangePassword: boolean;
   }
   interface Session {
     user: {
@@ -15,18 +15,19 @@ declare module "next-auth" {
       email: string;
       name: string;
       role: Role;
+      mustChangePassword: boolean;
     };
   }
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   ...authConfig,
   secret: process.env.AUTH_SECRET ?? (process.env.NODE_ENV === "production" ? undefined : "dev-only-auth-secret"),
   providers: [
     Credentials({
-      name: "이름 또는 이메일",
+      name: "이름 또는 전화번호",
       credentials: {
-        identifier: { label: "이름 또는 이메일", type: "text" },
+        identifier: { label: "이름 또는 전화번호", type: "text" },
         password: { label: "비밀번호", type: "password" },
       },
       async authorize(credentials) {
@@ -34,32 +35,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = credentials?.password as string | undefined;
         if (!identifier || !password) return null;
 
-        const toSessionUser = (user: {
-          id: string;
-          email: string;
-          name: string;
-          role: Role;
-        }) => ({
+        const result = await resolveLoginUser(identifier, password);
+        if (!result.ok) return null;
+
+        const user = result.user;
+        return {
           id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
-        });
-
-        if (identifier.includes("@")) {
-          const user = await getUserByEmail(identifier);
-          if (!user) return null;
-          const ok = await verifyPassword(password, user.passwordHash);
-          if (!ok) return null;
-          return toSessionUser(user);
-        }
-
-        const candidates = await getUserByName(identifier);
-        for (const user of candidates) {
-          const ok = await verifyPassword(password, user.passwordHash);
-          if (ok) return toSessionUser(user);
-        }
-        return null;
+          mustChangePassword: userMustChangePassword(user),
+        };
       },
     }),
   ],

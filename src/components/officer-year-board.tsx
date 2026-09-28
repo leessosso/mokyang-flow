@@ -151,7 +151,8 @@ function EmptySeat({
         <input type="hidden" name="title" value={title} />
         <p className="text-xs text-stone-500">목록에 없으면 이 직책으로 추가</p>
         <Input name="name" required placeholder="이름" />
-        <Input name="email" type="email" required autoComplete="off" placeholder="이메일" />
+        <Input name="email" type="email" required autoComplete="off" placeholder="이메일 (연락용)" />
+        <Input name="phone" type="tel" required autoComplete="off" placeholder="전화번호 (로그인용)" />
         <Input name="password" type="password" required minLength={8} autoComplete="new-password" placeholder="처음 비밀번호" />
         <Button type="submit" variant="secondary" disabled={pending}>
           추가하고 임명

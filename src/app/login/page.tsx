@@ -1,7 +1,14 @@
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { auth, signIn } from "@/auth";
+import { resolveLoginUser } from "@/lib/login";
 import { Button, Card, Input, Label } from "@/components/ui";
+
+const ERROR_MESSAGES: Record<string, string> = {
+  credentials: "이름(또는 전화번호) 또는 비밀번호가 올바르지 않습니다.",
+  duplicate_name: "동명이인입니다. 전화번호로 로그인해 주세요.",
+  email_not_allowed: "이메일로는 로그인할 수 없습니다. 이름 또는 전화번호를 사용해 주세요.",
+};
 
 export default async function LoginPage({
   searchParams,
@@ -9,9 +16,13 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const session = await auth();
-  if (session?.user) redirect("/dashboard");
+  if (session?.user) {
+    if (session.user.mustChangePassword) redirect("/change-password");
+    redirect("/dashboard");
+  }
 
   const { error } = await searchParams;
+  const errorMessage = error ? ERROR_MESSAGES[error] ?? ERROR_MESSAGES.credentials : null;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-stone-100 px-4 lg:justify-start lg:px-0">
@@ -31,9 +42,9 @@ export default async function LoginPage({
             가장·임원·목사 전용 운영 도구입니다.
           </p>
         </div>
-        {error ? (
+        {errorMessage ? (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-            이름(또는 이메일) 또는 비밀번호가 올바르지 않습니다. 아래 데모 계정을 확인해 주세요.
+            {errorMessage}
           </p>
         ) : null}
         <form
@@ -41,11 +52,21 @@ export default async function LoginPage({
             "use server";
             const identifier = formData.get("identifier") as string;
             const password = formData.get("password") as string;
+            const precheck = await resolveLoginUser(identifier, password);
+            if (!precheck.ok) {
+              const code =
+                precheck.reason === "duplicate_name"
+                  ? "duplicate_name"
+                  : precheck.reason === "email_not_allowed"
+                    ? "email_not_allowed"
+                    : "credentials";
+              redirect(`/login?error=${code}`);
+            }
             try {
               await signIn("credentials", {
                 identifier,
                 password,
-                redirectTo: "/dashboard",
+                redirectTo: precheck.user.mustChangePassword ? "/change-password" : "/dashboard",
               });
             } catch (err) {
               if (err instanceof AuthError) {
@@ -57,20 +78,26 @@ export default async function LoginPage({
           className="space-y-4"
         >
           <div>
-            <Label>이름 또는 이메일</Label>
-            <Input name="identifier" type="text" required placeholder="임범석 또는 pastor@church.demo" autoComplete="username" />
+            <Label>이름 또는 전화번호</Label>
+            <Input
+              name="identifier"
+              type="text"
+              required
+              placeholder="홍길동 또는 01012345678"
+              autoComplete="username"
+            />
           </div>
           <div>
             <Label>비밀번호</Label>
-            <Input name="password" type="password" required placeholder="demo1234" />
+            <Input name="password" type="password" required autoComplete="current-password" />
           </div>
           <Button type="submit" className="w-full">로그인</Button>
         </form>
         <div className="mt-6 rounded-lg bg-stone-50 p-4 text-xs text-stone-600">
-          <p className="font-medium text-stone-800">데모 계정</p>
+          <p className="font-medium text-stone-800">데모 계정 (로컬 시드)</p>
           <ul className="mt-2 space-y-1">
-            <li>목사: 이름 <span className="font-medium text-stone-800">김목사</span> 또는 pastor@church.demo</li>
-            <li>2026 회장: 이름 <span className="font-medium text-stone-800">임범석</span> 또는 imbeomseok@test.church</li>
+            <li>목사: 이름 <span className="font-medium text-stone-800">김목사</span></li>
+            <li>2026 회장: 이름 <span className="font-medium text-stone-800">임범석</span></li>
             <li>비밀번호: demo1234</li>
           </ul>
         </div>

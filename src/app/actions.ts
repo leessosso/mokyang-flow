@@ -18,7 +18,13 @@ import {
 } from "@/lib/store/groups";
 import { appointOfficer, endOfficerYear, listActiveOfficers, vacateOfficer } from "@/lib/store/officers";
 import { hashPassword } from "@/lib/password";
-import { getUserByEmail, getUserById, createUser } from "@/lib/store/users";
+import { isPhoneLike, normalizePhone } from "@/lib/phone";
+import {
+  createUser,
+  getUserByEmail,
+  getUserById,
+  isPhoneUsedByAnotherUser,
+} from "@/lib/store/users";
 import { getGroupById } from "@/lib/store/groups";
 import {
   notifyPastorsAndAdminsOfFamilyReport,
@@ -64,6 +70,8 @@ import { parseNamesFromFile } from "@/lib/qr-import";
 import { parseMemberRowsFromFile, parseMemberRowsFromText } from "@/lib/member-import";
 import { MAX_MEETING_ASSET_BYTES } from "@/lib/meeting-assets";
 import { uploadMeetingFile } from "@/lib/storage";
+import { isValidPollDateKey } from "@/lib/poll-day";
+import { clearPollDaySettings, setPollDaySettings } from "@/lib/store/poll-day";
 import { getCurrentTerm, setCurrentTerm } from "@/lib/store/settings";
 import { nextTerm } from "@/lib/term";
 import { OFFICER_TITLES, type OfficerTitle } from "@/lib/types";
@@ -219,6 +227,31 @@ export async function handoverLeader(groupId: string, newLeaderId: string) {
   return { ok: true };
 }
 
+export async function setPollDayAction(formData: FormData) {
+  const manager = await requireAppManager();
+  if (!manager) return { error: "권한이 없습니다." };
+
+  const dateKey = String(formData.get("dateKey") ?? "").trim();
+  if (!isValidPollDateKey(dateKey)) {
+    return { error: "올바른 날짜(YYYY-MM-DD)를 선택해 주세요." };
+  }
+
+  await setPollDaySettings(dateKey, manager.id);
+  revalidatePath("/admin/poll-day");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function clearPollDayAction() {
+  const manager = await requireAppManager();
+  if (!manager) return { error: "권한이 없습니다." };
+
+  await clearPollDaySettings();
+  revalidatePath("/admin/poll-day");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
 export async function startNextFamilyTerm() {
   const manager = await requireAppManager();
   if (!manager) return { error: "권한이 없습니다." };
@@ -241,11 +274,13 @@ export async function startNextFamilyTerm() {
 function readNewLeader(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const phoneRaw = String(formData.get("phone") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   if (!name) return { ok: false as const, error: "이름을 입력해 주세요." };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false as const, error: "이메일을 확인해 주세요." };
+  if (!isPhoneLike(phoneRaw)) return { ok: false as const, error: "로그인용 전화번호를 확인해 주세요." };
   if (password.length < 8) return { ok: false as const, error: "비밀번호는 8자 이상이어야 합니다." };
-  return { ok: true as const, name, email, password };
+  return { ok: true as const, name, email, phone: normalizePhone(phoneRaw), password };
 }
 
 async function createLeaderAccount(formData: FormData) {
@@ -253,11 +288,16 @@ async function createLeaderAccount(formData: FormData) {
   if (!fields.ok) return fields;
   const existing = await getUserByEmail(fields.email);
   if (existing) return { ok: false as const, error: "이미 등록된 이메일입니다." };
+  if (await isPhoneUsedByAnotherUser(fields.phone)) {
+    return { ok: false as const, error: "이미 등록된 전화번호입니다." };
+  }
   const user = await createUser({
     email: fields.email,
     passwordHash: await hashPassword(fields.password),
     name: fields.name,
+    phone: fields.phone,
     role: "LEADER",
+    mustChangePassword: true,
   });
   return { ok: true as const, user };
 }
