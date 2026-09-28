@@ -34,6 +34,7 @@ async function main() {
   async function addUser(data: {
     email: string;
     name: string;
+    phone: string;
     role: "PASTOR" | "LEADER" | "ADMIN";
     officerTitle?: string | null;
   }) {
@@ -42,6 +43,8 @@ async function main() {
       email: data.email,
       passwordHash,
       name: data.name,
+      phone: data.phone.replace(/\D/g, ""),
+      mustChangePassword: false,
       role: data.role,
       officerTitle: data.officerTitle ?? null,
       createdAt: now,
@@ -49,24 +52,30 @@ async function main() {
     return ref.id;
   }
 
-  const pastorId = await addUser({ email: "pastor@church.demo", name: "김목사", role: "PASTOR" });
+  const pastorId = await addUser({
+    email: "pastor@church.demo",
+    name: "김목사",
+    phone: "01010000001",
+    role: "PASTOR",
+  });
 
   await getDb().collection("settings").doc("app").set({ year: 2026, half: "H1" });
 
   const officers = [
-    { title: "회장", name: "임범석", email: "imbeomseok@test.church" },
-    { title: "부회장", name: "김광림", email: "kimgwangrim@test.church" },
-    { title: "총무", name: "이혜미", email: "leehyemi@test.church" },
-    { title: "부총무", name: "이승석", email: "leeseungseok@test.church" },
-    { title: "서기", name: "박기도", email: "parkgido@test.church" },
-    { title: "부서기", name: "김이레", email: "kimire@test.church" },
-    { title: "회계", name: "정효정", email: "jeonghyojeong@test.church" },
-    { title: "부회계", name: "우재황", email: "woojaehwang@test.church" },
+    { title: "회장", name: "임범석", email: "imbeomseok@test.church", phone: "01020000001" },
+    { title: "부회장", name: "김광림", email: "kimgwangrim@test.church", phone: "01020000002" },
+    { title: "총무", name: "이혜미", email: "leehyemi@test.church", phone: "01020000003" },
+    { title: "부총무", name: "이승석", email: "leeseungseok@test.church", phone: "01020000004" },
+    { title: "서기", name: "박기도", email: "parkgido@test.church", phone: "01020000005" },
+    { title: "부서기", name: "김이레", email: "kimire@test.church", phone: "01020000006" },
+    { title: "회계", name: "정효정", email: "jeonghyojeong@test.church", phone: "01020000007" },
+    { title: "부회계", name: "우재황", email: "woojaehwang@test.church", phone: "01020000008" },
   ] as const;
   for (const officer of officers) {
     const userId = await addUser({
       email: officer.email,
       name: officer.name,
+      phone: officer.phone,
       role: "LEADER",
       officerTitle: officer.title,
     });
@@ -106,8 +115,14 @@ async function main() {
     ["한성민", "hanseongmin@test.church", "성민이네"],
   ] as const;
   const householdHeadIds: { userId: string; familyName: string }[] = [];
+  let householdPhoneSeq = 30000001;
   for (const [name, email, familyName] of householdHeads) {
-    const userId = await addUser({ email, name, role: "LEADER" });
+    const userId = await addUser({
+      email,
+      name,
+      phone: `010${householdPhoneSeq++}`,
+      role: "LEADER",
+    });
     householdHeadIds.push({ userId, familyName });
   }
 
