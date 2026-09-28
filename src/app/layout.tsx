@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "2청년회 운영",
-  description: "리더모임·교안·기도회·배정모자·돌봄카드",
-  applicationName: "2청년회 운영",
+  title: "2청년회",
+  description: "2청년회 통합 플랫폼 — 리더·훈련 프로그램",
+  applicationName: "2청년회",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "2청년회 운영",
+    title: "2청년회",
   },
   icons: {
     icon: [
