@@ -1,0 +1,70 @@
+import Link from "next/link";
+import type { HomeCard } from "@/lib/platform/home-cards";
+import { Card, CardHeader } from "@/components/ui";
+
+function HomeCardLink({ card }: { card: HomeCard }) {
+  if (card.variant === "emphasis") {
+    return (
+      <Link
+        href={card.href}
+        className="flex flex-col justify-between rounded-2xl border-2 border-primary bg-surface px-5 py-6 shadow-sm transition hover:border-primary/80 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-lg font-semibold text-primary">{card.title}</h3>
+            {card.badge && (
+              <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-medium text-accent">
+                {card.badge}
+              </span>
+            )}
+          </div>
+          <p className="mt-2 text-sm text-muted">{card.description}</p>
+        </div>
+        <span className="mt-4 text-sm font-medium text-primary">바로 가기 →</span>
+      </Link>
+    );
+  }
+
+  return (
+    <Card className="transition hover:shadow-md">
+      <CardHeader title={card.title} subtitle={card.description} />
+      <div className="flex items-center justify-between px-4 py-3 sm:px-5">
+        {card.badge && (
+          <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-medium text-accent">
+            {card.badge}
+          </span>
+        )}
+        <Link
+          href={card.href}
+          className="ml-auto text-sm font-medium text-primary hover:underline"
+        >
+          열기
+        </Link>
+      </div>
+    </Card>
+  );
+}
+
+export function HomeCardGrid({ cards }: { cards: HomeCard[] }) {
+  const emphasis = cards.filter((c) => c.variant === "emphasis");
+  const rest = cards.filter((c) => c.variant !== "emphasis");
+
+  return (
+    <div className="space-y-4">
+      {emphasis.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-1">
+          {emphasis.map((card) => (
+            <HomeCardLink key={card.id} card={card} />
+          ))}
+        </div>
+      )}
+      {rest.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {rest.map((card) => (
+            <HomeCardLink key={card.id} card={card} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

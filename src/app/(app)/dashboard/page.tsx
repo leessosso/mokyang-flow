@@ -1,18 +1,18 @@
-import Link from "next/link";
 import { auth } from "@/auth";
-import { Card, CardHeader } from "@/components/ui";
-import { getCurrentUser, isPastorOrAdmin } from "@/lib/auth";
-import { formatDateTimeKo, roleLabel } from "@/lib/format";
-import { getGroupByCurrentLeader, listGroups } from "@/lib/store/groups";
-import { listMeetings } from "@/lib/store/meetings";
-import { countThreadsWithMessages } from "@/lib/store/reports";
-import { listMarksBySunday, listWeeklySundaySlots } from "@/lib/store/attendance";
-import { canManageApp } from "@/lib/types";
+import { HomeCardGrid } from "@/components/home-card-grid";
 import { PollDayBanner } from "@/components/poll-day-banner";
 import { PushNotificationSettings } from "@/components/push-notification-settings";
+import { getCurrentUser } from "@/lib/auth";
 import { isWebPushConfigured } from "@/lib/firebase-client";
+import { roleLabel } from "@/lib/format";
+import { buildHomeCards } from "@/lib/platform/home-cards";
+import { resolvePlatformPersonas } from "@/lib/platform/roles";
+import { listMarksBySunday, listWeeklySundaySlots } from "@/lib/store/attendance";
+import { getGroupByCurrentLeader, listGroups } from "@/lib/store/groups";
+import { listMeetings } from "@/lib/store/meetings";
 import { getPollDayBannerIfToday } from "@/lib/store/poll-day";
 import { listPushSubscriptionsForUser } from "@/lib/store/push-subscriptions";
+import { canManageApp } from "@/lib/types";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -20,23 +20,9 @@ export default async function DashboardPage() {
   const actor = await getCurrentUser();
   const manages = actor ? canManageApp(actor) : false;
 
-  const meetings = (await listMeetings()).slice(0, 3);
-
   const myGroup = user.role === "LEADER" ? await getGroupByCurrentLeader(user.id) : null;
 
-  const attendanceGroups = manages
-    ? await listGroups()
-    : myGroup
-      ? [myGroup]
-      : [];
-
-  const reportGroups = isPastorOrAdmin(user.role)
-    ? attendanceGroups
-    : myGroup
-      ? [myGroup]
-      : [];
-
-  const reportCount = await countThreadsWithMessages(reportGroups.map((g) => g.id));
+  const attendanceGroups = manages ? await listGroups() : myGroup ? [myGroup] : [];
 
   const currentWeek = (await listWeeklySundaySlots(1))[0] ?? null;
   const latestSunday = currentWeek?.sunday ?? null;
@@ -52,6 +38,33 @@ export default async function DashboardPage() {
     }
   }
 
+  const meetings = await listMeetings();
+  const upcoming = meetings.find((m) => new Date(m.date) >= new Date()) ?? meetings[0] ?? null;
+
+  const familyReportHref = myGroup ? `/reports/${myGroup.id}` : "/reports";
+
+  const personas = actor
+    ? resolvePlatformPersonas({
+        user: actor,
+        ledGroup: myGroup,
+        trainingManagerProgramIds: undefined,
+        trainingParticipantProgramIds: undefined,
+      })
+    : [];
+
+  const homeCards = buildHomeCards({
+    personas,
+    latestSundayId: latestSunday?.id ?? null,
+    latestSundayTitle: latestSunday?.title ?? null,
+    myGroupId: myGroup?.id ?? null,
+    myGroupName: myGroup?.name ?? null,
+    familyReportHref,
+    missingAttendanceCount,
+    myAttendanceMissing,
+    nextMeetingTitle: upcoming?.title ?? null,
+    nextMeetingHref: upcoming ? `/meetings/${upcoming.id}` : null,
+  });
+
   const webPushConfigured = isWebPushConfigured();
   const webPushSubscribed = webPushConfigured
     ? (await listPushSubscriptionsForUser(user.id)).length > 0
@@ -64,54 +77,16 @@ export default async function DashboardPage() {
       {pollBanner && <PollDayBanner href={pollBanner.href} />}
 
       <div>
-        <h2 className="text-xl font-semibold text-stone-900">안녕하세요, {user.name}님</h2>
-        <p className="mt-1 text-sm text-stone-600">
-          역할: {roleLabel(user.role)} · 돌봄카드 {reportCount}건
-          {latestSunday && manages && (
-            <>
-              {" · "}
-              <Link href={`/attendance/${latestSunday.id}`} className="underline">
-                {latestSunday.title} 출석 미입력 가족 {missingAttendanceCount}곳
-              </Link>
-            </>
-          )}
-          {latestSunday && myAttendanceMissing && myGroup && (
-            <>
-              {" · "}
-              <Link href={`/attendance/${latestSunday.id}/${myGroup.id}`} className="underline">
-                {latestSunday.title} 출석을 입력해 주세요
-              </Link>
-            </>
-          )}
-        </p>
+        <h2 className="text-xl font-semibold text-foreground">안녕하세요, {user.name}님</h2>
+        <p className="mt-1 text-sm text-muted">역할: {roleLabel(user.role)}</p>
       </div>
+
+      <HomeCardGrid cards={homeCards} />
 
       <PushNotificationSettings
         configured={webPushConfigured}
         initialSubscribed={webPushSubscribed}
       />
-
-      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-        <Card>
-          <CardHeader title="최근 리더모임" subtitle="기도회 · 교안 나눔 · 해설 · 광고" />
-          <ul className="divide-y divide-stone-100">
-            {meetings.map((m) => (
-              <li key={m.id}>
-                <Link
-                  href={`/meetings/${m.id}`}
-                  className="block px-4 py-3 transition hover:bg-stone-50 focus-visible:bg-stone-50 focus-visible:outline-none sm:px-5"
-                >
-                  <p className="font-medium text-stone-900">{m.title}</p>
-                  <p className="text-sm text-stone-500">{formatDateTimeKo(m.date)}</p>
-                </Link>
-              </li>
-            ))}
-            {meetings.length === 0 && (
-              <li className="px-4 py-6 text-sm text-stone-500 sm:px-5">아직 등록된 모임이 없습니다.</li>
-            )}
-          </ul>
-        </Card>
-      </div>
     </div>
   );
 }
