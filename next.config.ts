@@ -1,4 +1,8 @@
 import type { NextConfig } from "next";
+import {
+  resolveTrainingOrigin,
+  trainingRewriteDestination,
+} from "./src/lib/platform/training-proxy";
 
 const nextConfig: NextConfig = {
   experimental: {
@@ -7,7 +11,20 @@ const nextConfig: NextConfig = {
     proxyClientMaxBodySize: "25mb",
   },
   async rewrites() {
-    return [{ source: "/sorting-hat", destination: "/sorting-hat/index.html" }];
+    const rules: { source: string; destination: string }[] = [
+      { source: "/sorting-hat", destination: "/sorting-hat/index.html" },
+    ];
+
+    const trainingOrigin = resolveTrainingOrigin();
+    if (trainingOrigin) {
+      const dest = trainingRewriteDestination(trainingOrigin);
+      rules.push(
+        { source: "/training", destination: dest },
+        { source: "/training/:path*", destination: `${dest}/:path*` },
+      );
+    }
+
+    return rules;
   },
 };
 
