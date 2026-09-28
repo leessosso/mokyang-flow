@@ -1,11 +1,36 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { HomeCard } from "@/lib/platform/home-cards";
+import { TRAINING_SSO_ENTRY_PATH } from "@/lib/platform/training-sso-constants";
 import { Card, CardHeader } from "@/components/ui";
+
+function CardHrefLink({
+  href,
+  className,
+  children,
+}: {
+  href: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  if (href === TRAINING_SSO_ENTRY_PATH) {
+    return (
+      <a href={href} className={className}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
+  );
+}
 
 function HomeCardLink({ card }: { card: HomeCard }) {
   if (card.variant === "emphasis") {
     return (
-      <Link
+      <CardHrefLink
         href={card.href}
         className="flex flex-col justify-between rounded-2xl border-2 border-primary bg-surface px-5 py-6 shadow-sm transition hover:border-primary/80 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
@@ -21,7 +46,7 @@ function HomeCardLink({ card }: { card: HomeCard }) {
           <p className="mt-2 text-sm text-muted">{card.description}</p>
         </div>
         <span className="mt-4 text-sm font-medium text-primary">바로 가기 →</span>
-      </Link>
+      </CardHrefLink>
     );
   }
 
@@ -34,12 +59,12 @@ function HomeCardLink({ card }: { card: HomeCard }) {
             {card.badge}
           </span>
         )}
-        <Link
+        <CardHrefLink
           href={card.href}
           className="ml-auto text-sm font-medium text-primary hover:underline"
         >
           열기
-        </Link>
+        </CardHrefLink>
       </div>
     </Card>
   );
