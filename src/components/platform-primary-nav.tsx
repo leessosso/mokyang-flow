@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { TRAINING_SSO_ENTRY_PATH } from "@/lib/platform/training-sso-constants";
 
 const AXES = [
   { id: "leader", href: "/dashboard", label: "리더" },
-  { id: "training", href: "/training", label: "훈련" },
+  { id: "training", href: TRAINING_SSO_ENTRY_PATH, label: "훈련" },
 ] as const;
 
 function isTrainingPath(pathname: string) {
