@@ -46,8 +46,12 @@ export function AddLeaderForm({
         <Input name="name" required placeholder="홍길동" />
       </div>
       <div>
-        <Label>이메일</Label>
+        <Label>이메일 (연락용)</Label>
         <Input name="email" type="email" required autoComplete="off" placeholder="name@example.com" />
+      </div>
+      <div>
+        <Label>전화번호 (로그인용)</Label>
+        <Input name="phone" type="tel" required autoComplete="off" placeholder="01012345678" />
       </div>
       <div>
         <Label>처음 비밀번호</Label>
