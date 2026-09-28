@@ -13,11 +13,21 @@ MVP §9.1: 훈련 프로그램은 mokyang-flow와 **같은 도메인**의 `/trai
 - **로컬**: env 없으면 rewrite 비활성 → `/training`은 Next 라우트가 없어 404. 프록시 테스트 시 `.env.local`에 origin 설정.
 - **끄기**: `TRAINING_ORIGIN=` (빈 문자열)로 명시하면 rewrite 생략.
 
+## Rewrite 매핑 (class-management 봇 권장 패턴과 동일)
+
+| mokyang-flow (source) | destination |
+|----------------------|-------------|
+| `/training` | `{TRAINING_ORIGIN}/training` |
+| `/training/:path*` | `{TRAINING_ORIGIN}/training/:path*` |
+
+예: `TRAINING_ORIGIN=https://class-management-chi-amber.vercel.app` →  
+`/training/foo` → `https://class-management-chi-amber.vercel.app/training/foo`
+
 ## class-management 쪽 기대 설정
 
-1. **`basePath: '/training'`** (Next.js `next.config`)  
-   - mokyang-flow는 `/training` 및 `/training/:path*`를 `{TRAINING_ORIGIN}/training` 및 `{TRAINING_ORIGIN}/training/:path*`로 프록시한다.  
-   - basePath 없이 루트(`/`)에만 서비스되면 HTML·`/_next` 경로가 맞지 않아 **깨진다**.
+1. **`basePath: '/training'`** — [class-management PR #2](https://github.com/leessosso/class-management/pull/2) (아직 미머지·미배포).  
+   - **프로덕션 end-to-end는 PR #2 머지·배포 후**에만 정상 동작한다.  
+   - 현재 라이브 origin은 basePath 없이 루트(`/`)만 있어, mokyang-flow rewrite만 올려도 `/training`은 404·깨진 asset이 난다.
 
 2. **정적 자산**  
    - basePath 적용 시 JS/CSS는 `/training/_next/...`로 노출된다. mokyang-flow rewrite가 `/training/:path*`로 함께 전달한다.
@@ -26,12 +36,12 @@ MVP §9.1: 훈련 프로그램은 mokyang-flow와 **같은 도메인**의 `/trai
    - 브라우저는 mokyang-flow 호스트만 본다. class-management 전용 쿠키는 프록시 응답의 `Set-Cookie`가 **mokyang-flow 도메인**으로 내려와야 동작한다 (path/domain 속성 조정 필요할 수 있음).  
    - **공통 로그인·memberId 동기화**는 class-management 레포 follow-up (이 슬라이스 범위 밖).
 
-## basePath 배포 전 한계 (정직한 상태)
+## basePath 배포 전 한계
 
-- rewrite는 이미 mokyang-flow에 올라가도, class-management가 루트 basePath만 쓰면 `/training` 진입 시 404·깨진 asset·잘못된 링크가 난다.
+- [class-management PR #2](https://github.com/leessosso/class-management/pull/2) 머지·배포 전: 라이브 `class-management-chi-amber.vercel.app`에는 `/training` 앱이 없음.
 - SSO 없으면 훈련 앱 자체 로그인(있다면)과 셸 로그인이 분리된다.
 
-## 검증 (class-management에 basePath `/training` 배포 후)
+## 검증 (class-management PR #2 배포 후)
 
 1. mokyang-flow에 로그인.
 2. 같은 탭에서 `https://<mokyang-flow-host>/training` (또는 내비 **훈련** — shell PR #18 등).

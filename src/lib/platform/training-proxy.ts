@@ -32,7 +32,11 @@ export function resolveTrainingOrigin(
   return null;
 }
 
-/** class-management에 `basePath: '/training'` 일 때 쓰는 rewrite destination prefix */
+/**
+ * class-management `basePath: '/training'` 배포 후 shell rewrite destination.
+ * 패턴: `{origin}/training` 및 `{origin}/training/:path*`
+ * (class-management PR: https://github.com/leessosso/class-management/pull/2)
+ */
 export function trainingRewriteDestination(origin: string): string {
   return `${origin}${TRAINING_PATH_PREFIX}`;
 }
