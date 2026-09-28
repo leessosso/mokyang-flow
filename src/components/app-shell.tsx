@@ -27,6 +27,7 @@ function navFor(
       { href: "/groups", label: "가족" },
       { href: "/admin/members", label: "성도 명단" },
       { href: "/admin/handover", label: "가장·임원 관리" },
+      { href: "/admin/poll-day", label: "투표일" },
       { href: SORTING_HAT_ADMIN_PATH, label: "배정 관리" },
     );
   }

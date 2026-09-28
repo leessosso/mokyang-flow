@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { HomeCardGrid } from "@/components/home-card-grid";
+import { PollDayBanner } from "@/components/poll-day-banner";
 import { PushNotificationSettings } from "@/components/push-notification-settings";
 import { getCurrentUser } from "@/lib/auth";
 import { isWebPushConfigured } from "@/lib/firebase-client";
@@ -9,6 +10,7 @@ import { resolvePlatformPersonas } from "@/lib/platform/roles";
 import { listMarksBySunday, listWeeklySundaySlots } from "@/lib/store/attendance";
 import { getGroupByCurrentLeader, listGroups } from "@/lib/store/groups";
 import { listMeetings } from "@/lib/store/meetings";
+import { getPollDayBannerIfToday } from "@/lib/store/poll-day";
 import { listPushSubscriptionsForUser } from "@/lib/store/push-subscriptions";
 import { canManageApp } from "@/lib/types";
 
@@ -68,8 +70,12 @@ export default async function DashboardPage() {
     ? (await listPushSubscriptionsForUser(user.id)).length > 0
     : false;
 
+  const pollBanner = await getPollDayBannerIfToday();
+
   return (
     <div className="space-y-6">
+      {pollBanner && <PollDayBanner href={pollBanner.href} />}
+
       <div>
         <h2 className="text-xl font-semibold text-foreground">안녕하세요, {user.name}님</h2>
         <p className="mt-1 text-sm text-muted">역할: {roleLabel(user.role)}</p>
