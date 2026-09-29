@@ -4,8 +4,9 @@ import { canManageApp } from "@/lib/types";
 import { FitText } from "@/components/fit-text";
 import { AppMain } from "@/components/app-main";
 import { AppNav, type NavItem } from "@/components/app-nav";
-import { PlatformPrimaryNav } from "@/components/platform-primary-nav";
+import { AppNavDrawer } from "@/components/app-nav-drawer";
 import { LeaderAxisChrome } from "@/components/leader-axis-chrome";
+import { PlatformTrainingLink } from "@/components/platform-training-link";
 import { SORTING_HAT_ADMIN_PATH, SORTING_HAT_USER_PATH } from "@/lib/sorting-hat";
 
 function navFor(
@@ -70,11 +71,11 @@ export function AppShell({
         <div className="border-b border-border px-5 py-4">
           <p className="text-lg font-semibold text-foreground">2청년회</p>
           <p className="mt-0.5 text-xs text-muted">통합 플랫폼</p>
-          <div className="mt-3">
-            <PlatformPrimaryNav />
-          </div>
         </div>
         <LeaderAxisChrome leaderNav={<AppNav items={nav} variant="desktop" />} />
+        <div className="border-t border-border px-3 py-3">
+          <PlatformTrainingLink />
+        </div>
         <div className="mt-auto border-t border-border px-3 py-4">
           <p className="truncate px-3 text-sm font-medium">{user.name}</p>
           <LogoutButton className="mt-2" />
@@ -83,21 +84,18 @@ export function AppShell({
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="shrink-0 border-b border-border bg-surface lg:hidden">
-          <div className="flex items-center justify-between gap-3 px-4 py-2">
+          <div className="flex items-center gap-2 px-3 py-2 sm:px-4">
+            <LeaderAxisChrome leaderNav={<AppNavDrawer items={nav} />} />
             <div className="min-w-0 flex-1">
               <FitText text="2청년회" />
             </div>
-            <div className="flex min-w-0 max-w-[46%] items-center gap-2">
+            <div className="flex min-w-0 max-w-[50%] shrink items-center gap-1 sm:gap-2">
               <div className="min-w-0 text-right text-sm">
                 <p className="truncate font-medium">{user.name}</p>
               </div>
               <LogoutButton className="shrink-0" />
             </div>
           </div>
-          <div className="border-t border-border px-4 py-2">
-            <PlatformPrimaryNav />
-          </div>
-          <LeaderAxisChrome leaderNav={<AppNav items={nav} variant="mobile" />} />
         </header>
         <AppMain>{children}</AppMain>
       </div>
