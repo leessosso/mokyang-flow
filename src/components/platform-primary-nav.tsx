@@ -24,15 +24,28 @@ export function PlatformPrimaryNav() {
     >
       {AXES.map((axis) => {
         const active = axis.id === "training" ? trainingActive : !trainingActive;
+        const className = `rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+          active
+            ? "bg-primary text-white shadow-sm"
+            : "text-muted hover:bg-stone-100 hover:text-foreground"
+        }`;
+        if (axis.id === "training") {
+          return (
+            <a
+              key={axis.id}
+              href={axis.href}
+              className={className}
+              aria-current={active ? "page" : undefined}
+            >
+              {axis.label}
+            </a>
+          );
+        }
         return (
           <Link
             key={axis.id}
             href={axis.href}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              active
-                ? "bg-primary text-white shadow-sm"
-                : "text-muted hover:bg-stone-100 hover:text-foreground"
-            }`}
+            className={className}
             aria-current={active ? "page" : undefined}
           >
             {axis.label}
