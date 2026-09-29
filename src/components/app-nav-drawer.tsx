@@ -90,7 +90,7 @@ export function AppNavDrawer({ items }: { items: NavItem[] }) {
             role="dialog"
             aria-modal="true"
             aria-labelledby={`${titleId}-label`}
-            className="absolute left-0 top-0 flex h-full w-[min(100%,20rem)] flex-col border-r border-border bg-surface shadow-xl"
+            className="absolute right-0 top-0 flex h-full w-[min(100%,20rem)] flex-col border-l border-border bg-surface shadow-xl"
           >
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <p id={`${titleId}-label`} className="text-base font-semibold">

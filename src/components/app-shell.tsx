@@ -84,17 +84,15 @@ export function AppShell({
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="shrink-0 border-b border-border bg-surface lg:hidden">
-          <div className="flex items-center gap-2 px-3 py-2 sm:px-4">
-            <LeaderAxisChrome leaderNav={<AppNavDrawer items={nav} />} />
+          <div className="flex flex-nowrap items-center gap-2 px-3 py-2 sm:px-4">
             <div className="min-w-0 flex-1">
               <FitText text="2청년회" />
             </div>
-            <div className="flex min-w-0 max-w-[50%] shrink items-center gap-1 sm:gap-2">
-              <div className="min-w-0 text-right text-sm">
-                <p className="truncate font-medium">{user.name}</p>
-              </div>
-              <LogoutButton className="shrink-0" />
-            </div>
+            <p className="min-w-0 max-w-[28%] shrink truncate text-sm font-medium sm:max-w-[36%]">
+              {user.name}
+            </p>
+            <LogoutButton className="shrink-0" />
+            <LeaderAxisChrome leaderNav={<AppNavDrawer items={nav} />} />
           </div>
         </header>
         <AppMain>{children}</AppMain>
