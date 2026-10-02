@@ -6,6 +6,7 @@ import { AppMain } from "@/components/app-main";
 import { AppNav, type NavItem } from "@/components/app-nav";
 import { AppNavDrawer } from "@/components/app-nav-drawer";
 import { LeaderAxisChrome } from "@/components/leader-axis-chrome";
+import { PlatformTongdokLink } from "@/components/platform-tongdok-link";
 import { PlatformTrainingLink } from "@/components/platform-training-link";
 import { SORTING_HAT_ADMIN_PATH, SORTING_HAT_USER_PATH } from "@/lib/sorting-hat";
 
@@ -73,8 +74,9 @@ export function AppShell({
           <p className="mt-0.5 text-xs text-muted">통합 플랫폼</p>
         </div>
         <LeaderAxisChrome leaderNav={<AppNav items={nav} variant="desktop" />} />
-        <div className="border-t border-border px-3 py-3">
+        <div className="space-y-0.5 border-t border-border px-3 py-3">
           <PlatformTrainingLink />
+          <PlatformTongdokLink />
         </div>
         <div className="mt-auto border-t border-border px-3 py-4">
           <p className="truncate px-3 text-sm font-medium">{user.name}</p>
