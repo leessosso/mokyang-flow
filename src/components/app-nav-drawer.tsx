@@ -142,6 +142,12 @@ export function AppNavDrawer({ items }: { items: NavItem[] }) {
               >
                 훈련으로 가기
               </a>
+              <a
+                href="https://tongdok-mu.vercel.app"
+                className={`${linkBase} ${linkInactive}`}
+              >
+                통독으로 가기
+              </a>
             </div>
           </div>
         </div>
