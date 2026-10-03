@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 import {
   resolveTongdokOrigin,
-  tongdokRewriteDestination,
+  tongdokRewriteRules,
 } from "./src/lib/platform/tongdok-proxy";
 import {
   resolveTrainingOrigin,
@@ -15,14 +15,15 @@ const nextConfig: NextConfig = {
     proxyClientMaxBodySize: "25mb",
   },
   async rewrites() {
-    const rules: { source: string; destination: string }[] = [
+    const beforeFiles: { source: string; destination: string }[] = [];
+    const afterFiles: { source: string; destination: string }[] = [
       { source: "/sorting-hat", destination: "/sorting-hat/index.html" },
     ];
 
     const trainingOrigin = resolveTrainingOrigin();
     if (trainingOrigin) {
       const dest = trainingRewriteDestination(trainingOrigin);
-      rules.push(
+      afterFiles.push(
         { source: "/training", destination: dest },
         { source: "/training/:path*", destination: `${dest}/:path*` },
       );
@@ -30,14 +31,10 @@ const nextConfig: NextConfig = {
 
     const tongdokOrigin = resolveTongdokOrigin();
     if (tongdokOrigin) {
-      const dest = tongdokRewriteDestination(tongdokOrigin);
-      rules.push(
-        { source: "/tongdok", destination: dest },
-        { source: "/tongdok/:path*", destination: `${dest}/:path*` },
-      );
+      beforeFiles.push(...tongdokRewriteRules(tongdokOrigin));
     }
 
-    return rules;
+    return { beforeFiles, afterFiles };
   },
 };
 

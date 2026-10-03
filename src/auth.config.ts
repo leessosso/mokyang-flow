@@ -1,5 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
-import { TONGDOK_PATH_PREFIX } from "@/lib/platform/tongdok-proxy";
+import { isTongdokShellPublicPath } from "@/lib/platform/tongdok-proxy";
 
 export const authConfig: NextAuthConfig = {
   secret: process.env.AUTH_SECRET ?? (process.env.NODE_ENV === "production" ? undefined : "dev-only-auth-secret"),
@@ -15,9 +15,7 @@ export const authConfig: NextAuthConfig = {
       const isLogin = path === "/login";
       const isChangePassword = path === "/change-password";
       const isSortingHat = path.startsWith("/sorting-hat");
-      const isTongdok =
-        path === TONGDOK_PATH_PREFIX ||
-        path.startsWith(`${TONGDOK_PATH_PREFIX}/`);
+      const isTongdok = isTongdokShellPublicPath(path);
       const isPwaPublic =
         path === "/manifest.webmanifest" ||
         path === "/firebase-messaging-sw.js" ||
