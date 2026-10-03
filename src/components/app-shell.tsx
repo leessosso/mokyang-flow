@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { signOut } from "@/auth";
 import type { OfficerTitle, Role } from "@/lib/types";
 import { canManageApp } from "@/lib/types";
@@ -70,8 +71,13 @@ export function AppShell({
     <div className="flex h-full min-h-screen flex-col bg-background text-foreground lg:flex-row">
       <aside className="hidden lg:flex lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-border lg:bg-surface">
         <div className="border-b border-border px-5 py-4">
-          <p className="text-lg font-semibold text-foreground">2청년회</p>
-          <p className="mt-0.5 text-xs text-muted">통합 플랫폼</p>
+          <Link
+            href="/dashboard"
+            className="block cursor-pointer rounded-lg -mx-2 px-2 py-1 transition-colors hover:bg-stone-100"
+          >
+            <p className="text-lg font-semibold text-foreground">2청년회</p>
+            <p className="mt-0.5 text-xs text-muted">통합 플랫폼</p>
+          </Link>
         </div>
         <LeaderAxisChrome leaderNav={<AppNav items={nav} variant="desktop" />} />
         <div className="space-y-0.5 border-t border-border px-3 py-3">
@@ -87,9 +93,12 @@ export function AppShell({
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="shrink-0 border-b border-border bg-surface lg:hidden">
           <div className="flex flex-nowrap items-center gap-2 px-3 py-2 sm:px-4">
-            <div className="min-w-0 flex-1">
+            <Link
+              href="/dashboard"
+              className="min-w-0 flex-1 cursor-pointer rounded-lg px-1 transition-colors hover:bg-stone-100"
+            >
               <FitText text="2청년회" />
-            </div>
+            </Link>
             <p className="min-w-0 max-w-[28%] shrink truncate text-sm font-medium sm:max-w-[36%]">
               {user.name}
             </p>
