@@ -19,13 +19,16 @@
 | mokyang-flow (source) | upstream path (destination) |
 |----------------------|-----------------------------|
 | `/tongdok` | `/tongdok` |
-| `/tongdok/:path*` | `/tongdok/:path*` (일반 자산·라우트) |
-| `/tongdok.rsc` | `/tongdok.rsc` |
-| `/tongdok/tongdok.rsc` | **`/tongdok.rsc`** (basePath 루트 flight — `/tongdok`을 두 번 붙이지 않음) |
+| `/tongdok/:path*` | `/tongdok/:path*` (일반 자산·라우트·`login.rsc` 등) |
+| `/tongdok.rsc`, `/tongdok/tongdok.rsc` | 동일 path (1:1) — **middleware** `NextResponse.rewrite`로 upstream 전달 |
 
 예: `TONGDOK_ORIGIN=https://tongdok-mu.vercel.app` →  
 `/tongdok/foo` → `https://tongdok-mu.vercel.app/tongdok/foo`  
-`/tongdok/tongdok.rsc` → `https://tongdok-mu.vercel.app/tongdok.rsc` (동일 호스트에서 tongdok-mu에 직접 요청할 때와 같은 path)
+`/tongdok/tongdok.rsc` → `https://tongdok-mu.vercel.app/tongdok/tongdok.rsc`
+
+### 루트 RSC flight (middleware)
+
+Next.js 셸은 `/tongdok/tongdok.rsc`·`/tongdok.rsc`를 **자체 App Router flight**로 처리하려 해 `beforeFiles` rewrite 전에 307 self-redirect가 난다. `src/middleware.ts`가 `proxyTongdokRootFlightRequest`로 tongdok-mu에 `NextResponse.rewrite`(RSC 헤더 전달)를 먼저 수행한다. `/tongdok/login.rsc` 등 하위 flight는 rewrite만으로 충분해 middleware 대상이 아니다.
 
 `TONGDOK_ORIGIN`에 `/tongdok` path가 실수로 포함돼도 `normalizeTongdokOrigin`이 제거해 `{origin}/tongdok/tongdok/...` 이중 prefix를 막습니다.
 

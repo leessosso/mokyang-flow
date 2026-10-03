@@ -10,10 +10,7 @@ export const TONGDOK_ORIGIN_ENV = "TONGDOK_ORIGIN";
 
 export const DEFAULT_TONGDOK_ORIGIN = "https://tongdok-mu.vercel.app";
 
-/**
- * Next.js basePath `/tongdok` 루트 페이지 RSC flight 파일명.
- * 셸에서 `/tongdok/tongdok.rsc`로 보이는 요청은 upstream `/tongdok.rsc`로 보내야 한다.
- */
+/** Next.js basePath `/tongdok` 루트 페이지 RSC flight 파일명 (`/tongdok/tongdok.rsc`). */
 export const TONGDOK_ROOT_RSC_SEGMENT = "tongdok.rsc";
 
 /**
@@ -56,21 +53,7 @@ export function isTongdokShellPublicPath(pathname: string): boolean {
  */
 export function tongdokShellPathToUpstreamPath(pathname: string): string | null {
   if (!isTongdokShellPublicPath(pathname)) return null;
-
-  if (pathname === TONGDOK_PATH_PREFIX) {
-    return TONGDOK_PATH_PREFIX;
-  }
-
-  if (pathname.startsWith(`${TONGDOK_PATH_PREFIX}.`)) {
-    return pathname;
-  }
-
-  const rest = pathname.slice(TONGDOK_PATH_PREFIX.length + 1);
-  if (rest === TONGDOK_ROOT_RSC_SEGMENT) {
-    return `${TONGDOK_PATH_PREFIX}.rsc`;
-  }
-
-  return `${TONGDOK_PATH_PREFIX}/${rest}`;
+  return pathname;
 }
 
 export type TongdokRewriteRule = { source: string; destination: string };
@@ -84,10 +67,6 @@ export function tongdokRewriteRules(origin: string): TongdokRewriteRule[] {
   const upstream = (path: string) => `${base}${path}`;
 
   return [
-    {
-      source: `${TONGDOK_PATH_PREFIX}/${TONGDOK_ROOT_RSC_SEGMENT}`,
-      destination: upstream(`${TONGDOK_PATH_PREFIX}.rsc`),
-    },
     {
       source: `${TONGDOK_PATH_PREFIX}.rsc`,
       destination: upstream(`${TONGDOK_PATH_PREFIX}.rsc`),
