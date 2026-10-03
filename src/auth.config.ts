@@ -1,4 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
+import { TONGDOK_PATH_PREFIX } from "@/lib/platform/tongdok-proxy";
 
 export const authConfig: NextAuthConfig = {
   secret: process.env.AUTH_SECRET ?? (process.env.NODE_ENV === "production" ? undefined : "dev-only-auth-secret"),
@@ -14,6 +15,9 @@ export const authConfig: NextAuthConfig = {
       const isLogin = path === "/login";
       const isChangePassword = path === "/change-password";
       const isSortingHat = path.startsWith("/sorting-hat");
+      const isTongdok =
+        path === TONGDOK_PATH_PREFIX ||
+        path.startsWith(`${TONGDOK_PATH_PREFIX}/`);
       const isPwaPublic =
         path === "/manifest.webmanifest" ||
         path === "/firebase-messaging-sw.js" ||
@@ -21,7 +25,14 @@ export const authConfig: NextAuthConfig = {
         path === "/favicon.ico" ||
         path.startsWith("/icons/");
 
-      if (!isLoggedIn && !isLogin && !isChangePassword && !isSortingHat && !isPwaPublic) {
+      if (
+        !isLoggedIn &&
+        !isLogin &&
+        !isChangePassword &&
+        !isSortingHat &&
+        !isTongdok &&
+        !isPwaPublic
+      ) {
         return false;
       }
 
@@ -30,7 +41,7 @@ export const authConfig: NextAuthConfig = {
       }
 
       const mustChange = auth?.user?.mustChangePassword === true;
-      if (isLoggedIn && mustChange && !isChangePassword) {
+      if (isLoggedIn && mustChange && !isChangePassword && !isTongdok) {
         return Response.redirect(new URL("/change-password", request.nextUrl));
       }
 

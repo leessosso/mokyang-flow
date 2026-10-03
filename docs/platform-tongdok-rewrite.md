@@ -44,3 +44,7 @@
 
 - `/api/platform/training-sso`, `TRAINING_ORIGIN` rewrite는 기존과 동일.
 - 통독에는 SSO 티켓 엔트리를 추가하지 않는다 (이 슬라이스 범위).
+
+## NextAuth 미들웨어
+
+`src/auth.config.ts`의 `authorized`는 `/tongdok` 및 하위 경로를 **셸 로그인 없이** 통과시킨다 (rewrite가 tongdok-mu로 전달). 비밀번호 변경 강제(`mustChangePassword`) 리다이렉트도 이 prefix에서는 적용하지 않는다.
