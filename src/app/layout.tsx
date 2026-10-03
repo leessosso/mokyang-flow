@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://youth2-space.vercel.app"),
   title: "2청년회",
   description: "2청년회 통합 플랫폼 — 리더·훈련 프로그램",
   applicationName: "2청년회",

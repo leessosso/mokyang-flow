@@ -3,7 +3,7 @@ import { canManageApp, isPastorOrAdmin } from "@/lib/types";
 
 /**
  * §5.4 역할별 홈 카드용 플랫폼 페르소나.
- * mokyang-flow User/Group 모델과 훈련 프로그램 역할은 단계적으로 맞춘다.
+ * youth2-space(셸) User/Group 모델과 훈련 프로그램 역할은 단계적으로 맞춘다.
  */
 export type PlatformPersona =
   | "pastor_officer"
