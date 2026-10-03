@@ -28,7 +28,7 @@
 
 ### 루트 RSC flight (middleware)
 
-Next.js 셸은 `/tongdok/tongdok.rsc`·`/tongdok.rsc`를 **자체 App Router flight**로 처리하려 해 `beforeFiles` rewrite 전에 307 self-redirect가 난다. `src/middleware.ts`가 `proxyTongdokRootFlightRequest`로 tongdok-mu에 `NextResponse.rewrite`(RSC 헤더 전달)를 먼저 수행한다. `/tongdok/login.rsc` 등 하위 flight는 rewrite만으로 충분해 middleware 대상이 아니다.
+Next.js 셸은 `/tongdok/tongdok.rsc`·`/tongdok.rsc`를 **자체 App Router flight**로 처리하려 해 `beforeFiles` rewrite 전에 307 self-redirect가 난다. `src/middleware.ts`가 `proxyTongdokRootFlightRequest`로 tongdok-mu에 `NextResponse.rewrite`(RSC 헤더 전달)를 **NextAuth middleware보다 먼저** 수행한다 (`auth(callback)` 래핑은 `authorized: false` 시 로그인 리다이렉트를 건너뛰므로 사용하지 않음). `/tongdok/login.rsc` 등 하위 flight는 rewrite만으로 충분해 middleware 대상이 아니다.
 
 `TONGDOK_ORIGIN`에 `/tongdok` path가 실수로 포함돼도 `normalizeTongdokOrigin`이 제거해 `{origin}/tongdok/tongdok/...` 이중 prefix를 막습니다.
 
