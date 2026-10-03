@@ -14,13 +14,20 @@
 
 ## Rewrite 매핑
 
-| mokyang-flow (source) | destination |
-|----------------------|-------------|
-| `/tongdok` | `{TONGDOK_ORIGIN}/tongdok` |
-| `/tongdok/:path*` | `{TONGDOK_ORIGIN}/tongdok/:path*` |
+`next.config.ts`는 통독 규칙을 **`beforeFiles`**에 넣어, 셸이 `/tongdok.rsc` 같은 flight URL을 자체 App Router RSC로 해석하지 않고 upstream으로 보냅니다.
+
+| mokyang-flow (source) | upstream path (destination) |
+|----------------------|-----------------------------|
+| `/tongdok` | `/tongdok` |
+| `/tongdok/:path*` | `/tongdok/:path*` (일반 자산·라우트) |
+| `/tongdok.rsc` | `/tongdok.rsc` |
+| `/tongdok/tongdok.rsc` | **`/tongdok.rsc`** (basePath 루트 flight — `/tongdok`을 두 번 붙이지 않음) |
 
 예: `TONGDOK_ORIGIN=https://tongdok-mu.vercel.app` →  
-`/tongdok/foo` → `https://tongdok-mu.vercel.app/tongdok/foo`
+`/tongdok/foo` → `https://tongdok-mu.vercel.app/tongdok/foo`  
+`/tongdok/tongdok.rsc` → `https://tongdok-mu.vercel.app/tongdok.rsc` (동일 호스트에서 tongdok-mu에 직접 요청할 때와 같은 path)
+
+`TONGDOK_ORIGIN`에 `/tongdok` path가 실수로 포함돼도 `normalizeTongdokOrigin`이 제거해 `{origin}/tongdok/tongdok/...` 이중 prefix를 막습니다.
 
 ## tongdok-mu 쪽 기대 설정
 
@@ -47,4 +54,4 @@
 
 ## NextAuth 미들웨어
 
-`src/auth.config.ts`의 `authorized`는 `/tongdok` 및 하위 경로를 **셸 로그인 없이** 통과시킨다 (rewrite가 tongdok-mu로 전달). 비밀번호 변경 강제(`mustChangePassword`) 리다이렉트도 이 prefix에서는 적용하지 않는다.
+`src/auth.config.ts`의 `authorized`는 `isTongdokShellPublicPath`로 `/tongdok`, `/tongdok/*`, `/tongdok.rsc` 등 flight URL을 **셸 로그인 없이** 통과시킨다 (rewrite가 tongdok-mu로 전달). 비밀번호 변경 강제(`mustChangePassword`) 리다이렉트도 통독 prefix에서는 적용하지 않는다.
