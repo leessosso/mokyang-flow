@@ -1,7 +1,13 @@
 import NextAuth from "next-auth";
 import { authConfig } from "@/auth.config";
+import { proxyTongdokRootFlightRequest } from "@/lib/platform/tongdok-flight-proxy";
 
-export default NextAuth(authConfig).auth;
+export default NextAuth(authConfig).auth((request) => {
+  const tongdokFlight = proxyTongdokRootFlightRequest(request);
+  if (tongdokFlight) {
+    return tongdokFlight;
+  }
+});
 
 export const config = {
   matcher: [
