@@ -1,6 +1,6 @@
 # 셸 → 훈련 SSO (Phase 1, 티켓 발급)
 
-셸(mokyang-flow)에서 **훈련** 메뉴로 들어갈 때 이름 재입력을 줄이기 위해, NextAuth 세션을 바탕으로 짧은 수명 JWT 티켓을 발급하고 훈련 앱의 consume 경로로 리다이렉트합니다.
+셸(2청년회 · `https://youth2-space.vercel.app`)에서 **훈련** 메뉴로 들어갈 때 이름 재입력을 줄이기 위해, NextAuth 세션을 바탕으로 짧은 수명 JWT 티켓을 발급하고 훈련 앱의 consume 경로로 리다이렉트합니다.
 
 ## 환경 변수
 

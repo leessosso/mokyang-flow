@@ -206,6 +206,8 @@ Realtime Database를 그대로 씁니다. `public/sorting-hat/firebase-config.js
 
 ## 배포 (Vercel)
 
+공개 URL: [https://youth2-space.vercel.app](https://youth2-space.vercel.app)
+
 디스크에 남기는 데이터는 없습니다. Firebase 환경 변수만 있으면 배포할 수 있습니다.
 
 1. `.env.example`의 Firebase 서비스 계정·웹 푸시 변수를 등록합니다. 에뮬레이터 변수는 넣지 않습니다. Vercel Blob 스토어를 프로젝트에 연결하면 `BLOB_READ_WRITE_TOKEN`이 주입됩니다.
