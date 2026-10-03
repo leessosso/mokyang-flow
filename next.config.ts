@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 import {
+  resolveTongdokOrigin,
+  tongdokRewriteDestination,
+} from "./src/lib/platform/tongdok-proxy";
+import {
   resolveTrainingOrigin,
   trainingRewriteDestination,
 } from "./src/lib/platform/training-proxy";
@@ -21,6 +25,15 @@ const nextConfig: NextConfig = {
       rules.push(
         { source: "/training", destination: dest },
         { source: "/training/:path*", destination: `${dest}/:path*` },
+      );
+    }
+
+    const tongdokOrigin = resolveTongdokOrigin();
+    if (tongdokOrigin) {
+      const dest = tongdokRewriteDestination(tongdokOrigin);
+      rules.push(
+        { source: "/tongdok", destination: dest },
+        { source: "/tongdok/:path*", destination: `${dest}/:path*` },
       );
     }
 
